@@ -19,6 +19,15 @@ public record Game(
         this(word, candidates, Collections.emptyList(), Collections.emptyList());
     }
 
+    public Game {
+        Objects.requireNonNull(word, "word");
+        if (Objects.requireNonNull(candidates, "candidates").isEmpty()) {
+            throw new IllegalArgumentException("No candidates");
+        }
+        Objects.requireNonNull(constraints, "constraints");
+        Objects.requireNonNull(guesses, "guesses");
+    }
+
     public Game guessWord() {
         return tryWord(randomElement(candidates));
     }
@@ -58,8 +67,11 @@ public record Game(
     }
 
     public WordElim elimination(Word word) {
-        List<Constraint> resultConstraints = constraintsGiven(word);
-        return new WordElim(word, stillViable(resultConstraints).size());
+        List<Constraint> constraints = constraintsGiven(word);
+        return new WordElim(
+            word,
+            candidates.size() - stillViable(constraints).size()
+        );
     }
 
     public Game guessed(Word guess, List<Constraint> newConstraints) {
@@ -83,12 +95,16 @@ public record Game(
     private List<Word> stillViable(List<Constraint> constraints) {
         return candidates.stream()
             .filter(word ->
-                constraints.stream().noneMatch(constraint ->
-                    constraint.excludes(word)))
+                includes(constraints, word))
             .toList();
     }
 
     private static final Random RND = new Random();
+
+    private static boolean includes(List<Constraint> constraints, Word word) {
+        return constraints.stream()
+            .noneMatch(constraint -> constraint.excludes(word));
+    }
 
     private static <T> T randomElement(List<T> list) {
         return list.get(RND.nextInt(list.size()));

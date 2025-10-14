@@ -47,7 +47,12 @@ public record Word(char[] letters) implements Comparable<Word> {
     }
 
     public boolean contains(char c) {
-        return chars().anyMatch(ch -> ch == c);
+        for (char letter : letters) {
+            if (letter == c) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean contains(char c, List<Integer> excluded) {
@@ -68,10 +73,6 @@ public record Word(char[] letters) implements Comparable<Word> {
         return letters()[index];
     }
 
-    Stream<Character> chars() {
-        return indexedChars().map(IndexedChar::c);
-    }
-
     public Constraint indexOf(IndexedChar indexedChar) {
         for (var index = 0; index < letters.length; index++) {
             if (letters[index] == indexedChar.c()) {
@@ -82,6 +83,10 @@ public record Word(char[] letters) implements Comparable<Word> {
             }
         }
         return new Constraint.Unused(indexedChar.c());
+    }
+
+    Stream<Character> chars() {
+        return indexedChars().map(IndexedChar::c);
     }
 
     private boolean matchAt(IndexedChar ic, int i) {
