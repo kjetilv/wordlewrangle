@@ -2,9 +2,25 @@ package wordlewrangler;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @SuppressWarnings("NullableProblems")
 public sealed interface Constraint extends Comparable<Constraint> {
+
+    static List<Constraint> parse(Word guess, String spec) {
+        return IntStream.range(0, spec.length()).<Constraint>mapToObj(i -> {
+                char type = spec.charAt(i);
+                char c = guess.charAt(i);
+                return switch (type) {
+                    case 'F' -> new Fixed(c, i);
+                    case 'P' -> new Present(c, i);
+                    case 'U' -> new Unused(c);
+                    default -> throw new IllegalArgumentException("Invalid constraint spec: " + spec);
+                };
+            })
+            .distinct()
+            .toList();
+    }
 
     @Override
     default int compareTo(Constraint o) {

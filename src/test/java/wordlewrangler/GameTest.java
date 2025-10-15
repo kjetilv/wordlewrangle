@@ -21,4 +21,11 @@ public class GameTest {
             w -> w.word().equals(new Word("TAUNT")));
         assertThat(game2.tryWord("TAUNT").done()).isTrue();
     }
+
+    @Test
+    void test2025_10_14() {
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+
+        Game slate = game.tried("SLATE", "UUUUU");
+    }
 }

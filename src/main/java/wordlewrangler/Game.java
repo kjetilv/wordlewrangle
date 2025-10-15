@@ -60,6 +60,12 @@ public record Game(
         return apply(guess, guessConstraints);
     }
 
+    public Game tried(String guess, String spec) {
+        Word word = new Word(guess);
+        var parsed = Constraint.parse(word, spec);
+        return apply(word, parsed);
+    }
+
     public WordElim hotCandidate() {
         var hotCandidates = hotCandidates();
         return hotCandidates.size() == 1
@@ -155,6 +161,7 @@ public record Game(
     private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
         return Arrays.stream(collections)
             .flatMap(Collection::stream)
+            .distinct()
             .toList();
     }
 
