@@ -11,7 +11,7 @@ static Word random(List<Word> words) {
 
 @SuppressWarnings("MethodMayBeStatic")
 void main() {
-    var words = Word.list("words.txt");
+    var words = Word.fromFile(Path.of("words.txt"));
     Game game = new Game(words).guessWord();
 
     System.out.println("Word   : " + game.word());
@@ -34,19 +34,14 @@ void main() {
         printWords(game.candidates(), 16);
 
         System.out.println("Hot candidates:");
-        List<WordElim> elims = game.hotCandidates()
-            .toList();
+        List<WordElim> elims = game.hotCandidates();
         printWords(elims, 10);
 
-        Optional<WordElim> hotCandidate = game.hotCandidate();
-        if (hotCandidate.isPresent()) {
-            Word hotWord = hotCandidate.get().word();
-            System.out.println("Trying hot word: " + hotWord);
-            game = game.tryWord(hotWord);
-        } else {
-            System.out.println("Trying random word...");
-            game = game.guessWord();
-        }
+        WordElim hotCandidate = game.hotCandidate();
+        Word hotWord = hotCandidate.word();
+        System.out.println("Trying hot word: " + hotWord);
+
+        game = game.tryWord(hotWord);
     }
 }
 
@@ -68,7 +63,7 @@ private static void printConstraints(Collection<Constraint> constraints) {
 
 private static List<Constraint> findConstraints(Word guess, Word selected) {
     return guess.indexedChars()
-        .map(selected::indexOf)
+        .map(selected::constraintFor)
         .toList();
 }
 
