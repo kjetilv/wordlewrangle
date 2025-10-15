@@ -12,7 +12,7 @@ static Word random(List<Word> words) {
 @SuppressWarnings("MethodMayBeStatic")
 void main() {
     var words = Word.fromFile(Path.of("words.txt"));
-    Game game = new Game(words).guessWord();
+    var game = new Game(words).guessWord();
 
     System.out.println("Word   : " + game.word());
 
@@ -34,11 +34,11 @@ void main() {
         printWords(game.candidates(), 16);
 
         System.out.println("Hot candidates:");
-        List<WordElim> elims = game.hotCandidates();
+        var elims = game.hotCandidates();
         printWords(elims, 10);
 
-        WordElim hotCandidate = game.hotCandidate();
-        Word hotWord = hotCandidate.word();
+        var hotCandidate = game.hotCandidate();
+        var hotWord = hotCandidate.word();
         System.out.println("Trying hot word: " + hotWord);
 
         game = game.tryWord(hotWord);

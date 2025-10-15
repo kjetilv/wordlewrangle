@@ -62,14 +62,17 @@ public record Game(
 
     public WordElim hotCandidate() {
         var hotCandidates = hotCandidates();
-        if (hotCandidates.size() == 1) {
-            return hotCandidates.getFirst();
-        }
+        return hotCandidates.size() == 1
+            ? hotCandidates.getFirst()
+            : randomElement(hottestCandiadates());
+    }
+
+    public List<WordElim> hottestCandiadates() {
+        List<WordElim> hotCandidates = hotCandidates();
         var maxElimination = maxEliminations(hotCandidates);
-        var maxEliminators = hotCandidates.stream()
+        return hotCandidates.stream()
             .filter(eliminates(maxElimination))
             .toList();
-        return randomElement(maxEliminators);
     }
 
     public List<WordElim> hotCandidates() {
@@ -153,7 +156,6 @@ public record Game(
         return Arrays.stream(collections)
             .flatMap(Collection::stream)
             .toList();
-//            mergeConstraints(Stream.of(collections).flatMap(Collection::stream));
     }
 
     @Override
@@ -166,5 +168,4 @@ public record Game(
                ", candidates:" + candidates.size() +
                "]";
     }
-
 }
