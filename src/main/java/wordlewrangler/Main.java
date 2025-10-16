@@ -1,7 +1,6 @@
 import wordlewrangler.Constraint;
 import wordlewrangler.Game;
 import wordlewrangler.Word;
-import wordlewrangler.WordElim;
 
 public static final Random RND = new Random();
 
@@ -12,7 +11,7 @@ static Word random(List<Word> words) {
 @SuppressWarnings("MethodMayBeStatic")
 void main() {
     var words = Word.fromFile(Path.of("words.txt"));
-    var game = new Game(words).guessWord();
+    var game = new Game(words).random().guessWord();
 
     System.out.println("Word   : " + game.word());
 
@@ -37,7 +36,7 @@ void main() {
         var elims = game.hotCandidates();
         printWords(elims, 10);
 
-        var hotCandidate = game.hotCandidate();
+        var hotCandidate = game.someHotCandidate();
         var hotWord = hotCandidate.word();
         System.out.println("Trying hot word: " + hotWord);
 

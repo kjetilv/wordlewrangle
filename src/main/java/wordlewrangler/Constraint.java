@@ -29,6 +29,10 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
     char c();
 
+    default IntStream resolved() {
+        return IntStream.empty();
+    }
+
     boolean excludes(Word word);
 
     private static String toStrings(List<?> excluded1) {
@@ -48,6 +52,11 @@ public sealed interface Constraint extends Comparable<Constraint> {
             return positions.stream()
                 .anyMatch(position ->
                     word.charAt(position) != c);
+        }
+
+        @Override
+        public IntStream resolved() {
+            return positions.stream().mapToInt(i -> i);
         }
 
         @Override

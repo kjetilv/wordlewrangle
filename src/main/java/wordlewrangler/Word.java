@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 
 public record Word(String letters) implements Comparable<Word> {
 
+    static final int SIZE = 5;
+
     public static List<Word> fromFile(Path path) {
         try (
             var lines = Files.lines(path);
@@ -42,7 +44,7 @@ public record Word(String letters) implements Comparable<Word> {
     }
 
     public Word {
-        if (Objects.requireNonNull(letters, "string").length() != 5) {
+        if (Objects.requireNonNull(letters, "string").length() != SIZE) {
             throw new IllegalArgumentException("Not a five-letter word: " + letters);
         }
     }

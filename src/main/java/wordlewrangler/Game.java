@@ -56,7 +56,7 @@ public record Game(
     }
 
     public Game tryWord(Word guess) {
-        var guessConstraints = newConstraints(guess);
+        var guessConstraints = newConstraints(word, guess);
         return apply(guess, guessConstraints);
     }
 
@@ -66,14 +66,11 @@ public record Game(
         return apply(word, parsed);
     }
 
-    public WordElim hotCandidate() {
-        var hotCandidates = hotCandidates();
-        return hotCandidates.size() == 1
-            ? hotCandidates.getFirst()
-            : randomElement(hottestCandiadates());
+    public WordElim someHotCandidate() {
+        return randomElement(hottestCandidates());
     }
 
-    public List<WordElim> hottestCandiadates() {
+    public List<WordElim> hottestCandidates() {
         List<WordElim> hotCandidates = hotCandidates();
         var maxElimination = maxEliminations(hotCandidates);
         return hotCandidates.stream()
@@ -96,18 +93,22 @@ public record Game(
         return guesses.getLast();
     }
 
+    public Game random() {
+        return new Game(randomElement(candidates), candidates, constraints, guesses);
+    }
+
     private Game apply(Word guess, List<Constraint> guessConstraints) {
         var newConstraints = mergeConstraints(this.constraints, guessConstraints);
         var trimmedCandidates = viable(candidates, newConstraints);
         return new Game(word, trimmedCandidates, newConstraints, add(guess));
     }
 
-    private WordElim elimination(Word word) {
-        var wordConstraints = newConstraints(word);
+    private WordElim elimination(Word guess) {
+        var wordConstraints = newConstraints(word, guess);
         var combinedConstraints = mergeConstraints(this.constraints, wordConstraints);
         var remaining = viable(candidates, combinedConstraints).size();
         var eliminated = candidates.size() - remaining;
-        return new WordElim(word, eliminated);
+        return new WordElim(guess, eliminated);
     }
 
     private List<Word> add(Word guess) {
@@ -115,12 +116,12 @@ public record Game(
             .toList();
     }
 
-    private List<Constraint> newConstraints(Word guess) {
-        if (word == null) {
+    private List<Constraint> newConstraints(Word assumed, Word guess) {
+        if (assumed == null) {
             throw new IllegalStateException(this + " is a secret game, constraints must be supplied with new guess");
         }
         return guess.indexedChars()
-            .map(word::constraintFor)
+            .map(assumed::constraintFor)
             .toList();
     }
 

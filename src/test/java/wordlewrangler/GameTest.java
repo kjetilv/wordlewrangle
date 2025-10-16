@@ -17,7 +17,7 @@ public class GameTest {
         System.out.println(game1);
         var game2 = game1.tryWord("PAINT");
         System.out.println(game2);
-        assertThat(game2.hottestCandiadates()).anyMatch(
+        assertThat(game2.hottestCandidates()).anyMatch(
             w -> w.word().equals(new Word("TAUNT")));
         assertThat(game2.tryWord("TAUNT").done()).isTrue();
     }
@@ -27,5 +27,7 @@ public class GameTest {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
 
         Game slate = game.tried("SLATE", "UUUUU");
+        WordElim hotCandidate = slate.someHotCandidate();
+        System.out.println(hotCandidate);
     }
 }
