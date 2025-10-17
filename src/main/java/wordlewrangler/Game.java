@@ -1,6 +1,7 @@
 package wordlewrangler;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,9 +27,7 @@ public record Game(
     }
 
     public Game {
-        if (Objects.requireNonNull(candidates, "candidates").isEmpty()) {
-            throw new IllegalArgumentException("No candidates");
-        }
+        Objects.requireNonNull(candidates, "candidates");
         Objects.requireNonNull(constraints, "constraints");
         Objects.requireNonNull(guesses, "guesses");
     }
@@ -75,19 +74,18 @@ public record Game(
     }
 
     public List<WordElim> hotCandidates() {
-        return hotCandidates(solution);
+        return solution == null
+            ? averageHotCandidates()
+            : hotCandidates(solution);
     }
 
     public List<WordElim> hottestCandidates() {
-        List<WordElim> hotCandidates = hotCandidates(solution);
-        var maxElimination = maxEliminations(hotCandidates);
-        return hotCandidates.stream()
-            .filter(eliminates(maxElimination))
-            .toList();
+        return hottestOf(hotCandidates());
     }
 
     public boolean done() {
-        return !guesses.isEmpty() && guesses.getLast().equals(solution);
+        return candidates.isEmpty() ||
+               !guesses.isEmpty() && guesses.getLast().equals(solution);
     }
 
     public Word lastGuess() {
@@ -96,6 +94,28 @@ public record Game(
 
     public Game random() {
         return new Game(randomElement(candidates), candidates, constraints, guesses);
+    }
+
+    private List<WordElim> averageHotCandidates() {
+        return candidates.stream()
+            .parallel()
+            .map(this::hotCandidates)
+            .map(list ->
+                list.stream()
+                    .collect(Collectors.toMap(WordElim::word, Function.identity())))
+            .reduce(this::merged)
+            .map(Game::average)
+            .orElseGet(Collections::emptyMap)
+            .values()
+            .stream()
+            .sorted(BY_ELIMINATION.reversed())
+            .toList();
+    }
+
+    private Map<Word, WordElim> merged(Map<Word, WordElim> m, Map<Word, WordElim> other) {
+        candidates.forEach(candidate ->
+            m.merge(candidate, other.get(candidate), WordElim::add));
+        return m;
     }
 
     private List<WordElim> hotCandidates(Word assumingSolution) {
@@ -129,6 +149,22 @@ public record Game(
 
     private static final Comparator<WordElim> BY_ELIMINATION =
         Comparator.comparing(WordElim::eliminated);
+
+    private static List<WordElim> hottestOf(List<WordElim> hotCandidates) {
+        var maxElimination = maxEliminations(hotCandidates);
+        return hotCandidates.stream()
+            .filter(eliminates(maxElimination))
+            .toList();
+    }
+
+    private static Map<Word, WordElim> average(Map<Word, WordElim> result) {
+        return result.entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().avg()
+            ));
+    }
 
     private static List<Constraint> constraintsAgainst(Word assumed, Word guess) {
         return guess.indexedChars()

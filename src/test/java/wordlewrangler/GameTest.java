@@ -3,6 +3,7 @@ package wordlewrangler;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,7 +28,12 @@ public class GameTest {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
 
         Game slate = game.tried("SLATE", "UUUUU");
-        WordElim hotCandidate = slate.someHotCandidate();
-        System.out.println(hotCandidate);
+        List<WordElim> slateCandidates = slate.hotCandidates();
+//        System.out.println(slateCandidates);
+        Game mourn = slate.tried("MOURN", "PFPPU");
+        List<WordElim> mournCandidates = mourn.hotCandidates();
+//        System.out.println(mournCandidates);
+        Game done = mourn.tried("FORUM", "PPPPP");
+        assertThat(done.done()).isTrue();
     }
 }
