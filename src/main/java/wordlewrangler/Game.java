@@ -73,14 +73,14 @@ public record Game(
         return randomElement(hottestCandidates());
     }
 
+    public List<WordElim> hottestCandidates() {
+        return hottestOf(hotCandidates());
+    }
+
     public List<WordElim> hotCandidates() {
         return solution == null
             ? averageHotCandidates()
-            : hotCandidates(solution);
-    }
-
-    public List<WordElim> hottestCandidates() {
-        return hottestOf(hotCandidates());
+            : hotCandidatesFor(solution);
     }
 
     public boolean done() {
@@ -98,30 +98,22 @@ public record Game(
 
     private List<WordElim> averageHotCandidates() {
         return candidates.stream()
+            .map(this::hotCandidatesFor)
+            .map(Game::mapByWord)
             .parallel()
-            .map(this::hotCandidates)
-            .map(list ->
-                list.stream()
-                    .collect(Collectors.toMap(WordElim::word, Function.identity())))
-            .reduce(this::merged)
+            .reduce(Game::merge)
             .map(Game::average)
-            .orElseGet(Collections::emptyMap)
-            .values()
             .stream()
+            .map(Map::values)
+            .flatMap(Collection::stream)
             .sorted(BY_ELIMINATION.reversed())
             .toList();
     }
 
-    private Map<Word, WordElim> merged(Map<Word, WordElim> m, Map<Word, WordElim> other) {
-        candidates.forEach(candidate ->
-            m.merge(candidate, other.get(candidate), WordElim::add));
-        return m;
-    }
-
-    private List<WordElim> hotCandidates(Word assumingSolution) {
+    private List<WordElim> hotCandidatesFor(Word solution) {
         return candidates.stream()
             .map(guess ->
-                elimination(guess, assumingSolution))
+                elimination(guess, solution))
             .sorted(BY_ELIMINATION.reversed())
             .toList();
     }
@@ -149,6 +141,23 @@ public record Game(
 
     private static final Comparator<WordElim> BY_ELIMINATION =
         Comparator.comparing(WordElim::eliminated);
+
+    private static Map<Word, WordElim> mapByWord(List<WordElim> list) {
+        return list.stream()
+            .collect(Collectors.toMap(WordElim::word, Function.identity()));
+    }
+
+    private static Map<Word, WordElim> merge(Map<Word, WordElim> m, Map<Word, WordElim> other) {
+        m.keySet()
+            .stream().parallel()
+            .forEach(candidate ->
+                m.merge(
+                    candidate,
+                    other.get(candidate),
+                    WordElim::add
+                ));
+        return m;
+    }
 
     private static List<WordElim> hottestOf(List<WordElim> hotCandidates) {
         var maxElimination = maxEliminations(hotCandidates);

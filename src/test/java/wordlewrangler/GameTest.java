@@ -28,11 +28,9 @@ public class GameTest {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
 
         Game slate = game.tried("SLATE", "UUUUU");
-        List<WordElim> slateCandidates = slate.hotCandidates();
-//        System.out.println(slateCandidates);
+//        System.out.println(slate.hotCandidates());
         Game mourn = slate.tried("MOURN", "PFPPU");
-        List<WordElim> mournCandidates = mourn.hotCandidates();
-//        System.out.println(mournCandidates);
+//        System.out.println(mourn.hotCandidates());
         Game done = mourn.tried("FORUM", "PPPPP");
         assertThat(done.done()).isTrue();
     }
@@ -46,8 +44,8 @@ public class GameTest {
         Game mushy = slate.tried("MUSHY", "UUPUU");
 //        System.out.println(mushy.hotCandidates());
         Game crisp = mushy.tried("CRISP", "UFUFU");
-        System.out.println(crisp.hotCandidates());
-//        Game done = mourn.tried("FORUM", "PPPPP");
-//        assertThat(done.done()).isTrue();
+//        System.out.println(crisp.hotCandidates());
+        Game done = crisp.tried("GROSS", "PPPPP");
+        assertThat(done.done()).isTrue();
     }
 }
