@@ -13,7 +13,7 @@ void main() {
     var words = Word.fromFile(Path.of("words.txt"));
     var game = new Game(words).random().guessWord();
 
-    System.out.println("Word   : " + game.word());
+    System.out.println("Word   : " + game.solution());
 
     while (true) {
         if (game.done()) {

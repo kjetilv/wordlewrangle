@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 
 @SuppressWarnings("NullableProblems")
 public record Game(
-    Word word,
+    Word solution,
     List<Word> candidates,
     List<Constraint> constraints,
     List<Word> guesses
@@ -37,14 +37,14 @@ public record Game(
         return set(new Word(word));
     }
 
-    public Game set(Word word) {
-        if (candidates.contains(word)) {
-            return new Game(word, candidates, constraints, guesses);
+    public Game set(Word solution) {
+        if (guesses.isEmpty()) {
+            if (candidates.contains(solution)) {
+                return new Game(solution, candidates, constraints, guesses);
+            }
+            throw new IllegalArgumentException("No such candidate: " + solution);
         }
-        if (!guesses.isEmpty()) {
-            throw new IllegalStateException(this + " is already in progress!");
-        }
-        throw new IllegalArgumentException("No such candidate: " + word);
+        throw new IllegalStateException(this + " is already in progress!");
     }
 
     public Game guessWord() {
@@ -56,37 +56,38 @@ public record Game(
     }
 
     public Game tryWord(Word guess) {
-        var guessConstraints = newConstraints(word, guess);
-        return apply(guess, guessConstraints);
+        if (solution != null) {
+            var guessConstraints = constraintsAgainst(solution, guess);
+            return apply(guess, guessConstraints);
+        }
+        throw new IllegalStateException(this + " is a secret game, constraints must be supplied with new guess");
     }
 
     public Game tried(String guess, String spec) {
-        Word word = new Word(guess);
-        var parsed = Constraint.parse(word, spec);
-        return apply(word, parsed);
+        return apply(
+            new Word(guess),
+            Constraint.parse(new Word(guess), spec)
+        );
     }
 
     public WordElim someHotCandidate() {
         return randomElement(hottestCandidates());
     }
 
+    public List<WordElim> hotCandidates() {
+        return hotCandidates(solution);
+    }
+
     public List<WordElim> hottestCandidates() {
-        List<WordElim> hotCandidates = hotCandidates();
+        List<WordElim> hotCandidates = hotCandidates(solution);
         var maxElimination = maxEliminations(hotCandidates);
         return hotCandidates.stream()
             .filter(eliminates(maxElimination))
             .toList();
     }
 
-    public List<WordElim> hotCandidates() {
-        return candidates.stream()
-            .map(this::elimination)
-            .sorted(BY_ELIMINATION.reversed())
-            .toList();
-    }
-
     public boolean done() {
-        return !guesses.isEmpty() && guesses.getLast().equals(word);
+        return !guesses.isEmpty() && guesses.getLast().equals(solution);
     }
 
     public Word lastGuess() {
@@ -97,14 +98,22 @@ public record Game(
         return new Game(randomElement(candidates), candidates, constraints, guesses);
     }
 
+    private List<WordElim> hotCandidates(Word assumingSolution) {
+        return candidates.stream()
+            .map(guess ->
+                elimination(guess, assumingSolution))
+            .sorted(BY_ELIMINATION.reversed())
+            .toList();
+    }
+
     private Game apply(Word guess, List<Constraint> guessConstraints) {
         var newConstraints = mergeConstraints(this.constraints, guessConstraints);
         var trimmedCandidates = viable(candidates, newConstraints);
-        return new Game(word, trimmedCandidates, newConstraints, add(guess));
+        return new Game(solution, trimmedCandidates, newConstraints, add(guess));
     }
 
-    private WordElim elimination(Word guess) {
-        var wordConstraints = newConstraints(word, guess);
+    private WordElim elimination(Word guess, Word assumingSolution) {
+        var wordConstraints = constraintsAgainst(assumingSolution, guess);
         var combinedConstraints = mergeConstraints(this.constraints, wordConstraints);
         var remaining = viable(candidates, combinedConstraints).size();
         var eliminated = candidates.size() - remaining;
@@ -116,19 +125,16 @@ public record Game(
             .toList();
     }
 
-    private List<Constraint> newConstraints(Word assumed, Word guess) {
-        if (assumed == null) {
-            throw new IllegalStateException(this + " is a secret game, constraints must be supplied with new guess");
-        }
-        return guess.indexedChars()
-            .map(assumed::constraintFor)
-            .toList();
-    }
-
     private static final Random RND = new Random();
 
     private static final Comparator<WordElim> BY_ELIMINATION =
         Comparator.comparing(WordElim::eliminated);
+
+    private static List<Constraint> constraintsAgainst(Word assumed, Word guess) {
+        return guess.indexedChars()
+            .map(Objects.requireNonNull(assumed, "assumed")::constraintFor)
+            .toList();
+    }
 
     private static List<Word> viable(List<Word> candidates, List<Constraint> constraints) {
         return candidates.stream()
@@ -169,7 +175,7 @@ public record Game(
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-               (word == null ? "<secret>" : word.toString()) +
+               (solution == null ? "<secret>" : solution.toString()) +
                ", guesses:" + guesses.stream()
                    .map(Word::toString)
                    .collect(Collectors.joining(" ")) +
