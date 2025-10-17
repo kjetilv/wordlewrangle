@@ -104,6 +104,7 @@ public record Game(
             .reduce(Game::merge)
             .map(Game::average)
             .stream()
+            .parallel()
             .map(Map::values)
             .flatMap(Collection::stream)
             .sorted(BY_ELIMINATION.reversed())
