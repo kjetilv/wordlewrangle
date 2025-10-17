@@ -36,4 +36,18 @@ public class GameTest {
         Game done = mourn.tried("FORUM", "PPPPP");
         assertThat(done.done()).isTrue();
     }
+
+    @Test
+    void test2025_10_17() {
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+
+        Game slate = game.tried("SLATE", "PUUUU");
+//        System.out.println(slate.hotCandidates());
+        Game mushy = slate.tried("MUSHY", "UUPUU");
+//        System.out.println(mushy.hotCandidates());
+        Game crisp = mushy.tried("CRISP", "UFUFU");
+        System.out.println(crisp.hotCandidates());
+//        Game done = mourn.tried("FORUM", "PPPPP");
+//        assertThat(done.done()).isTrue();
+    }
 }
