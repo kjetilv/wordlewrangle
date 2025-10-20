@@ -17,7 +17,7 @@ void main() {
 
     while (true) {
         if (game.done()) {
-            System.out.println("Found it! " + game.lastGuess() + "! Guesses: " + game.guesses()
+            System.out.println("\nFound it! " + game.lastGuess() + "!\n\nGuesses: " + game.guesses()
                 .stream()
                 .map(Word::toString)
                 .collect(Collectors.joining(" ")));
@@ -29,12 +29,16 @@ void main() {
         System.out.println("Constraints:");
         printConstraints(game.constraints());
 
-        System.out.println("Still viable:");
-        printWords(game.candidates(), 16);
+        if (game.candidates().size() > 20) {
+            System.out.println("Still viable: " + game.candidates().size());
+        } else {
+            System.out.println("Still viable:");
+            printWords(game.candidates());
+        }
 
         System.out.println("Hot candidates:");
-        var elims = game.hotCandidates();
-        printWords(elims, 10);
+        var elims = game.hottestCandidates();
+        printWords(elims);
 
         var hotCandidate = game.someHotCandidate();
         var hotWord = hotCandidate.word();
@@ -44,20 +48,18 @@ void main() {
     }
 }
 
-private static void printWords(List<?> l, int windowSize) {
-    l.stream().gather(Gatherers.windowFixed(windowSize))
+private static void printWords(List<?> l) {
+    l.stream().gather(Gatherers.windowFixed(5))
         .forEach(window -> {
-            window.forEach(i -> System.out.print("  " + i));
+            window.forEach(i -> System.out.print(" " + i));
             System.out.println();
         });
 }
 
 private static void printConstraints(Collection<Constraint> constraints) {
-    System.out.println(
-        constraints.stream().sorted()
-            .map(Object::toString)
-            .collect(Collectors.joining("  ")
-            ));
+    System.out.println(" " + constraints.stream().sorted()
+        .map(Object::toString)
+        .collect(Collectors.joining(" ")));
 }
 
 private static List<Constraint> findConstraints(Word guess, Word selected) {

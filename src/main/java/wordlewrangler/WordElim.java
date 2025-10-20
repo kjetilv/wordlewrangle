@@ -17,6 +17,6 @@ public record WordElim(Word word, int eliminated, int count) {
 
     @Override
     public String toString() {
-        return "[" + word + ":" + eliminated + (count > 1 ? " [x" + (count - 1) : "]") + "]";
+        return word + ":" + eliminated + (count > 1 ? " [x" + (count - 1) : "");
     }
 }
