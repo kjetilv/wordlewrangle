@@ -1,6 +1,7 @@
 import wordlewrangler.Constraint;
 import wordlewrangler.Game;
 import wordlewrangler.Word;
+import wordlewrangler.WordElim;
 
 public static final Random RND = new Random();
 
@@ -36,9 +37,11 @@ void main() {
             printWords(game.candidates());
         }
 
-        System.out.println("Hot candidates:");
-        var elims = game.hottestCandidates();
-        printWords(elims);
+        List<WordElim> wordElims = game.hottestCandidates()
+            .stream()
+            .toList();
+        System.out.println("Hot candidates: " + wordElims.size());
+        printWords(wordElims);
 
         var hotCandidate = game.someHotCandidate();
         var hotWord = hotCandidate.word();
@@ -49,7 +52,8 @@ void main() {
 }
 
 private static void printWords(List<?> l) {
-    l.stream().gather(Gatherers.windowFixed(5))
+    l.stream()
+        .gather(Gatherers.windowFixed(5))
         .forEach(window -> {
             window.forEach(i -> System.out.print(" " + i));
             System.out.println();
@@ -59,7 +63,10 @@ private static void printWords(List<?> l) {
 private static void printConstraints(Collection<Constraint> constraints) {
     System.out.println(" " + constraints.stream().sorted()
         .map(Object::toString)
-        .collect(Collectors.joining(" ")));
+        .gather(Gatherers.windowFixed(5))
+        .map(list ->
+            String.join(" ", list))
+        .collect(Collectors.joining("\n ")));
 }
 
 private static List<Constraint> findConstraints(Word guess, Word selected) {
