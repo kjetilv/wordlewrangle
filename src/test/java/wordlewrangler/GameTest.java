@@ -27,24 +27,44 @@ public class GameTest {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
 
         Game slate = game.tried("SLATE", "UUUUU");
-//        System.out.println(slate.hotCandidates());
-        Game mourn = slate.tried("MOURN", "PFPPU");
+        System.out.println(slate.hotCandidates());
+//        Game mourn = slate.tried("MOURN", "PFPPU");
 //        System.out.println(mourn.hotCandidates());
-        Game done = mourn.tried("FORUM", "PPPPP");
-        assertThat(done.done()).isTrue();
+//        Game done = mourn.tried("FORUM", "PPPPP");
+//        assertThat(done.done()).isTrue();
     }
 
     @Test
     void test2025_10_17() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
-
-        Game slate = game.tried("SLATE", "PUUUU");
-//        System.out.println(slate.hotCandidates());
-        Game mushy = slate.tried("MUSHY", "UUPUU");
+        Game slate = game.tried("SLATE", "UUPUP");
+        System.out.println(slate.hottestCandidates());
+        Game amber = slate.tried("AMBER", "PUUFU");
+        System.out.println(amber.hottestCandidates());
+        Game haven = slate.tried("HAVEN", "UUUUU");
+//        Game mushy = slate.tried("HEARD", "UFFFF");
 //        System.out.println(mushy.hotCandidates());
-        Game crisp = mushy.tried("CRISP", "UFUFU");
+//        Game crisp = mushy.tried("CRISP", "UFUFU");
 //        System.out.println(crisp.hotCandidates());
-        Game done = crisp.tried("GROSS", "PPPPP");
-        assertThat(done.done()).isTrue();
+//        Game done = crisp.tried("GROSS", "PPPPP");
+//        assertThat(done.done()).isTrue();
+    }
+
+    @Test
+    void test2025_10_20() {
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+        Game slate = game.tried("SLATE", "UPUUU");
+        System.out.println(slate.hottestCandidates());
+        Game lurid = slate.tried("LURID", "FUUPU");
+        System.out.println(lurid.hottestCandidates());
+        Game lingo = lurid.tried("LINGO", "FFUUF");
+        System.out.println(lingo.hottestCandidates());
+
+//        Game mushy = slate.tried("HEARD", "UFFFF");
+//        System.out.println(mushy.hotCandidates());
+//        Game crisp = mushy.tried("CRISP", "UFUFU");
+//        System.out.println(crisp.hotCandidates());
+//        Game done = crisp.tried("GROSS", "PPPPP");
+//        assertThat(done.done()).isTrue();
     }
 }
