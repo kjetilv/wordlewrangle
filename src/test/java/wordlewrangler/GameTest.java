@@ -67,4 +67,15 @@ public class GameTest {
 //        Game done = crisp.tried("GROSS", "PPPPP");
 //        assertThat(done.done()).isTrue();
     }
+
+    @Test
+    void test2025_10_21() {
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+        var slate = game.tried("SLATE", "UUUPP");
+        System.out.println(slate.hottestCandidates());
+        var tenor = game.tried("TENOR", "PFUFU");
+        System.out.println(tenor.hottestCandidates());
+        var depot = game.tried("DEPOT", "FFUFP");
+        System.out.println(depot.hottestCandidates());
+    }
 }
