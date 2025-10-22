@@ -26,9 +26,8 @@ public record Word(String letters) implements Comparable<Word> {
     }
 
     public static List<Word> words(String string) {
-        return words(
-            Arrays.stream(string.split("\\s+"))
-        ).toList();
+        return words(Arrays.stream(string.split("\\s+")))
+            .toList();
     }
 
     public static Stream<Word> words(Stream<String> lines) {

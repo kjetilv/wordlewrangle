@@ -78,4 +78,15 @@ public class GameTest {
         var depot = game.tried("DEPOT", "FFUFP");
         System.out.println(depot.hottestCandidates());
     }
+
+    @Test
+    void test2025_10_22() {
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+        var slate = game.tried("SLATE", "FUUPU");
+        System.out.println(slate.hottestCandidates());
+        var snout = game.tried("SNOUT", "FPUPF");
+        System.out.println(snout.hottestCandidates());
+//        var depot = game.tried("DEPOT", "FFUFP");
+//        System.out.println(depot.hottestCandidates());
+    }
 }

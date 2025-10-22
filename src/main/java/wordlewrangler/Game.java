@@ -55,17 +55,19 @@ public record Game(
     }
 
     public Game tryWord(Word guess) {
-        if (solution != null) {
-            var guessConstraints = constraintsAgainst(solution, guess);
-            return apply(guess, guessConstraints);
+        if (solution == null) {
+            throw new IllegalStateException(this + " is a secret game, constraints must be supplied with new guess");
         }
-        throw new IllegalStateException(this + " is a secret game, constraints must be supplied with new guess");
+        return apply(
+            guess,
+            constraintsAgainst(solution, guess)
+        );
     }
 
     public Game tried(String guess, String spec) {
         return apply(
             new Word(guess),
-            Constraint.parse(new Word(guess), spec)
+            providedConstraints(guess, spec)
         );
     }
 
@@ -78,9 +80,9 @@ public record Game(
     }
 
     public List<WordElim> hotCandidates() {
-        return solution == null
-            ? averageHotCandidates()
-            : hotCandidatesFor(solution);
+        return solution != null
+            ? hotCandidatesFor(solution)
+            : averageHotCandidates();
     }
 
     public boolean done() {
@@ -126,6 +128,7 @@ public record Game(
     }
 
     private WordElim elimination(Word guess, Word assumingSolution) {
+        Objects.requireNonNull(assumingSolution, "assumingSolution");
         var wordConstraints = constraintsAgainst(assumingSolution, guess);
         var combinedConstraints = mergeConstraints(this.constraints, wordConstraints);
         var remaining = viable(candidates, combinedConstraints).size();
@@ -142,6 +145,10 @@ public record Game(
 
     private static final Comparator<WordElim> BY_ELIMINATION =
         Comparator.comparing(WordElim::eliminated);
+
+    private static List<Constraint> providedConstraints(String guess, String spec) {
+        return Constraint.parse(new Word(guess), spec);
+    }
 
     private static Map<Word, WordElim> mapByWord(List<WordElim> list) {
         return list.stream()
@@ -161,9 +168,13 @@ public record Game(
     }
 
     private static List<WordElim> hottestOf(List<WordElim> hotCandidates) {
-        var maxElimination = maxEliminations(hotCandidates);
+        var maxElimination = hotCandidates.stream()
+            .max(Comparator.comparing(WordElim::eliminated))
+            .map(WordElim::eliminated)
+            .orElse(0);
         return hotCandidates.stream()
-            .filter(eliminates(maxElimination))
+            .filter(wordElim ->
+                wordElim.eliminated() == maxElimination)
             .toList();
     }
 
@@ -176,32 +187,20 @@ public record Game(
             ));
     }
 
-    private static List<Constraint> constraintsAgainst(Word assumed, Word guess) {
+    private static List<Constraint> constraintsAgainst(Word solution, Word guess) {
         return guess.indexedChars()
-            .map(Objects.requireNonNull(assumed, "assumed")::constraintFor)
+            .map(Objects.requireNonNull(solution, "assumed")::constraintFor)
             .toList();
     }
 
     private static List<Word> viable(List<Word> candidates, List<Constraint> constraints) {
         return candidates.stream()
-            .filter(word ->
-                includes(constraints, word))
+            .filter(satisfiesConstraints(constraints))
             .toList();
     }
 
-    private static Predicate<WordElim> eliminates(int max) {
-        return wordElim -> wordElim.eliminated() == max;
-    }
-
-    private static int maxEliminations(List<WordElim> hotCandidates) {
-        return hotCandidates.stream()
-            .mapToInt(WordElim::eliminated)
-            .max()
-            .orElse(0);
-    }
-
-    private static boolean includes(List<Constraint> constraints, Word word) {
-        return constraints.stream()
+    private static Predicate<Word> satisfiesConstraints(List<Constraint> constraints) {
+        return word -> constraints.stream()
             .noneMatch(constraint ->
                 constraint.excludes(word));
     }

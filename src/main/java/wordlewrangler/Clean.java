@@ -1,8 +1,11 @@
 import wordlewrangler.Word;
 
+@SuppressWarnings("MethodMayBeStatic")
 void main() throws Exception {
     Path path = Path.of("words.txt");
-    List<Word> all = Word.fromFile(path).stream().distinct().toList();
+    List<Word> all = Word.fromFile(path)
+        .stream().distinct()
+        .toList();
     String newFile = contents(all);
     System.out.println("Found " + all.size() + " unique words.");
 
@@ -15,6 +18,7 @@ private static String contents(List<Word> all) {
         .map(words ->
             words.stream()
                 .map(Word::toString))
-        .map(strings -> strings.collect(Collectors.joining(" ")))
+        .map(strings ->
+            strings.collect(Collectors.joining(" ")))
         .collect(Collectors.joining("\n"));
 }
