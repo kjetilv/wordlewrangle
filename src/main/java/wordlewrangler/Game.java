@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @SuppressWarnings("NullableProblems")
@@ -23,7 +24,12 @@ public record Game(
     }
 
     public Game(Word word, List<Word> candidates) {
-        this(word, candidates, Collections.emptyList(), Collections.emptyList());
+        this(
+            word,
+            candidates,
+            Collections.emptyList(),
+            Collections.emptyList()
+        );
     }
 
     public Game {
@@ -34,6 +40,25 @@ public record Game(
 
     public Game set(String word) {
         return set(new Word(word));
+    }
+
+    public LetterDistributions distribution() {
+        return new LetterDistributions(IntStream.range(0, candidates.getFirst().letters().length())
+            .mapToObj(position ->
+                new LetterDistribution(
+                    position,
+                    candidates.stream()
+                        .map(word ->
+                            word.charAt(position))
+                        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                        .entrySet()
+                        .stream()
+                        .map(entry ->
+                            new LetterCount(entry.getKey(), Math.toIntExact(entry.getValue())))
+                        .sorted(Comparator.<LetterCount>naturalOrder().reversed())
+                        .toList()
+                ))
+            .toList());
     }
 
     public Game set(Word solution) {
@@ -76,13 +101,25 @@ public record Game(
     }
 
     public List<WordElim> hottestCandidates() {
-        return hottestOf(hotCandidates());
+        List<WordElim> desc = hotCandidatesDescending();
+        if (desc.isEmpty()) {
+            return desc;
+        }
+        int max = desc.getFirst().eliminated();
+        return desc.stream()
+            .takeWhile(wordElim ->
+                wordElim.eliminated() == max)
+            .toList();
     }
 
-    public List<WordElim> hotCandidates() {
-        return solution != null
-            ? hotCandidatesFor(solution)
-            : averageHotCandidates();
+    public List<WordElim> hotCandidatesDescending() {
+        return (solution == null
+            ? averageHotCandidates()
+            : candidates.stream()
+                .map(guess ->
+                    new WordElim(guess, eliminated(guess, solution)))
+        ).sorted(DESCENDING_ELIMINATION)
+            .toList();
     }
 
     public boolean done() {
@@ -98,42 +135,36 @@ public record Game(
         return new Game(randomElement(candidates), candidates, constraints, guesses);
     }
 
-    private List<WordElim> averageHotCandidates() {
-        return candidates.stream()
-            .map(this::hotCandidatesFor)
-            .map(Game::mapByWord)
-            .parallel()
-            .reduce(Game::merge)
-            .map(Game::average)
-            .stream()
-            .parallel()
-            .map(Map::values)
-            .flatMap(Collection::stream)
-            .sorted(BY_ELIMINATION.reversed())
-            .toList();
-    }
-
-    private List<WordElim> hotCandidatesFor(Word solution) {
-        return candidates.stream()
-            .map(guess ->
-                elimination(guess, solution))
-            .sorted(BY_ELIMINATION.reversed())
-            .toList();
-    }
-
     private Game apply(Word guess, List<Constraint> guessConstraints) {
         var newConstraints = mergeConstraints(this.constraints, guessConstraints);
         var trimmedCandidates = viable(candidates, newConstraints);
         return new Game(solution, trimmedCandidates, newConstraints, add(guess));
     }
 
-    private WordElim elimination(Word guess, Word assumingSolution) {
+    private Stream<WordElim> averageHotCandidates() {
+        return candidates.stream().parallel()
+            .map(this::hotCandidates)
+            .map(Game::mapByWord)
+            .reduce(Game::merge)
+            .map(Game::average)
+            .map(Map::values)
+            .orElseGet(Collections::emptyList)
+            .stream()
+            .sorted(DESCENDING_ELIMINATION);
+    }
+
+    private Stream<WordElim> hotCandidates(Word solution) {
+        return candidates.stream()
+            .map(guess ->
+                new WordElim(guess, eliminated(guess, solution)));
+    }
+
+    private int eliminated(Word guess, Word assumingSolution) {
         Objects.requireNonNull(assumingSolution, "assumingSolution");
         var wordConstraints = constraintsAgainst(assumingSolution, guess);
         var combinedConstraints = mergeConstraints(this.constraints, wordConstraints);
         var remaining = viable(candidates, combinedConstraints).size();
-        var eliminated = candidates.size() - remaining;
-        return new WordElim(guess, eliminated);
+        return candidates.size() - remaining;
     }
 
     private List<Word> add(Word guess) {
@@ -143,16 +174,33 @@ public record Game(
 
     private static final Random RND = new Random();
 
-    private static final Comparator<WordElim> BY_ELIMINATION =
-        Comparator.comparing(WordElim::eliminated);
+    private static final Comparator<WordElim> DESCENDING_ELIMINATION =
+        Comparator.comparing(WordElim::eliminated).reversed();
+
+    private static List<Word> viable(List<Word> candidates, List<Constraint> constraints) {
+        return candidates.stream()
+            .filter(satisfiesConstraints(constraints))
+            .toList();
+    }
 
     private static List<Constraint> providedConstraints(String guess, String spec) {
         return Constraint.parse(new Word(guess), spec);
     }
 
-    private static Map<Word, WordElim> mapByWord(List<WordElim> list) {
-        return list.stream()
-            .collect(Collectors.toMap(WordElim::word, Function.identity()));
+    @SafeVarargs
+    private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
+        return Arrays.stream(collections)
+            .flatMap(Collection::stream)
+            .distinct()
+            .toList();
+    }
+
+    private static Map<Word, WordElim> mapByWord(Stream<WordElim> list) {
+        return list.collect(Collectors.toMap(
+                WordElim::word,
+                Function.identity()
+            )
+        );
     }
 
     private static Map<Word, WordElim> merge(Map<Word, WordElim> m, Map<Word, WordElim> other) {
@@ -165,17 +213,6 @@ public record Game(
                     WordElim::add
                 ));
         return m;
-    }
-
-    private static List<WordElim> hottestOf(List<WordElim> hotCandidates) {
-        var maxElimination = hotCandidates.stream()
-            .max(Comparator.comparing(WordElim::eliminated))
-            .map(WordElim::eliminated)
-            .orElse(0);
-        return hotCandidates.stream()
-            .filter(wordElim ->
-                wordElim.eliminated() == maxElimination)
-            .toList();
     }
 
     private static Map<Word, WordElim> average(Map<Word, WordElim> result) {
@@ -193,28 +230,15 @@ public record Game(
             .toList();
     }
 
-    private static List<Word> viable(List<Word> candidates, List<Constraint> constraints) {
-        return candidates.stream()
-            .filter(satisfiesConstraints(constraints))
-            .toList();
-    }
-
     private static Predicate<Word> satisfiesConstraints(List<Constraint> constraints) {
-        return word -> constraints.stream()
-            .noneMatch(constraint ->
-                constraint.excludes(word));
+        return word ->
+            constraints.stream()
+                .noneMatch(constraint ->
+                    constraint.excludes(word));
     }
 
     private static <T> T randomElement(List<T> list) {
         return list.get(RND.nextInt(list.size()));
-    }
-
-    @SafeVarargs
-    private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
-        return Arrays.stream(collections)
-            .flatMap(Collection::stream)
-            .distinct()
-            .toList();
     }
 
     @Override

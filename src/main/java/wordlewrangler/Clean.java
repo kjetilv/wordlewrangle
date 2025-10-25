@@ -1,15 +1,24 @@
 import wordlewrangler.Word;
 
 @SuppressWarnings("MethodMayBeStatic")
-void main() throws Exception {
-    Path path = Path.of("words.txt");
-    List<Word> all = Word.fromFile(path)
-        .stream().distinct()
-        .toList();
-    String newFile = contents(all);
-    System.out.println("Found " + all.size() + " unique words.");
+void main() {
+    Stream.of("words.txt", "wordsish.txt", "words-expanded.txt")
+        .parallel()
+        .map(Path::of)
+        .forEach(path -> {
+            List<Word> all = Word.fromFile(path)
+                .stream()
+                .distinct()
+                .toList();
+            String newFile = contents(all);
+            System.out.println(path + ": Found " + all.size() + " unique words.");
 
-    Files.write(path, newFile.getBytes());
+            try {
+                Files.write(path, newFile.getBytes());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 }
 
 private static String contents(List<Word> all) {
