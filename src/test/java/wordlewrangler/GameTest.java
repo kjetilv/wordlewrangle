@@ -135,4 +135,26 @@ public class GameTest {
 //        var depot = game.tried("DEPOT", "FFUFP");
 //        System.out.println(depot.hottestCandidates());
     }
+
+    @Test
+    void test2025_10_16() {
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+        game = game.tried("SLATE", "UPPUP");
+        game = game.tried("BAGEL", "UPUPF");
+//        game = game.tried("PEDAL", "UPPFF");
+//        var barge = slate.tried("BARGE", "UFUFF");
+        LetterDistributions distribution = game.distribution();
+        List<WordElim> hotCandidatesDescending = game.hotCandidatesDescending();
+
+        System.out.println(distribution);
+
+        hotCandidatesDescending.stream()
+            .map(elim ->
+                Map.entry(elim, distribution.scoreStr(elim.word())))
+            .forEach(System.out::println);
+//        var bunch = slate.tried("BUNCH", "");
+//        System.out.println(bunch.hotCandidatesDescending());
+//        var depot = game.tried("DEPOT", "FFUFP");
+//        System.out.println(depot.hottestCandidates());
+    }
 }

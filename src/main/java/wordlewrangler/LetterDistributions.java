@@ -23,5 +23,5 @@ public record LetterDistributions(List<LetterDistribution> distributions) {
         return distributions.get(position).score(c);
     }
 
-    public static final NumberFormat NUMBER_INSTANCE = DecimalFormat.getNumberInstance(Locale.ROOT);
+    privateµ static final NumberFormat NUMBER_INSTANCE = DecimalFormat.getNumberInstance(Locale.ROOT);
 }
