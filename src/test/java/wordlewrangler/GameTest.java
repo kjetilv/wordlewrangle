@@ -137,21 +137,35 @@ public class GameTest {
     }
 
     @Test
-    void test2025_10_16() {
+    void test2025_10_27() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
-        game = game.tried("SLATE", "UPPUP");
-        game = game.tried("BAGEL", "UPUPF");
+        game = game.tried("SLATE", "UUUUU");
+        game = game.tried("CRONY", "UFUUU");
+//        game = game.tried("HARPY", "UFPUU");
+//        game = game.tried("BLARE", "UFFFF");
+//        game = game.tried("DETER", "PFFUU");
+//        game = game.tried("FLUID", "UFFUU");
+//        game = game.tried("BAGEL", "UPUPF");
 //        game = game.tried("PEDAL", "UPPFF");
 //        var barge = slate.tried("BARGE", "UFUFF");
+
         LetterDistributions distribution = game.distribution();
         List<WordElim> hotCandidatesDescending = game.hotCandidatesDescending();
+//        List<WordElim> hotEliminatorsDescending = game.hotEliminatorsDescending();
+
+        System.out.println(hotCandidatesDescending);
+//        System.out.println(hotEliminatorsDescending);
 
         System.out.println(distribution);
 
-        hotCandidatesDescending.stream()
-            .map(elim ->
-                Map.entry(elim, distribution.scoreStr(elim.word())))
-            .forEach(System.out::println);
+        WordScores scores = game.wordScores();
+
+        scores.ratings().forEach(System.out::println);
+
+//        hotCandidatesDescending.stream()
+//            .map(elim ->
+//                Map.entry(elim, distribution.scoreStr(elim.word())))
+//            .forEach(System.out::println);
 //        var bunch = slate.tried("BUNCH", "");
 //        System.out.println(bunch.hotCandidatesDescending());
 //        var depot = game.tried("DEPOT", "FFUFP");

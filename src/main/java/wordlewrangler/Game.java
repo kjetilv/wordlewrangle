@@ -10,32 +10,38 @@ import java.util.stream.Stream;
 @SuppressWarnings("NullableProblems")
 public record Game(
     Word solution,
-    List<Word> candidates,
+    int unitaryLength,
+    Collection<Word> dictionary,
+    Collection<Word> candidates,
     List<Constraint> constraints,
     List<Word> guesses
 ) {
-
-    public Game(String data) {
-        this(Word.words(data));
-    }
 
     public Game(List<Word> candidates) {
         this(null, candidates);
     }
 
-    public Game(Word word, List<Word> candidates) {
+    public Game(Word solution, List<Word> dictionary) {
+        if (dictionary.isEmpty()) {
+            throw new IllegalStateException("Empty dictionary");
+        }
+        var length = unitaryLength(dictionary);
+        if (solution != null) {
+            if (!dictionary.contains(solution)) {
+                throw new IllegalArgumentException("Invalid solution, not contained in dictionary: " + solution);
+            }
+            if (solution.length() != length) {
+                throw new IllegalStateException("Invalid length for solution, should be " + length + ": " + solution);
+            }
+        }
         this(
-            word,
-            candidates,
+            solution,
+            length,
+            dictionary,
+            dictionary,
             Collections.emptyList(),
             Collections.emptyList()
         );
-    }
-
-    public Game {
-        Objects.requireNonNull(candidates, "candidates");
-        Objects.requireNonNull(constraints, "constraints");
-        Objects.requireNonNull(guesses, "guesses");
     }
 
     public Game set(String word) {
@@ -43,32 +49,47 @@ public record Game(
     }
 
     public LetterDistributions distribution() {
-        return new LetterDistributions(IntStream.range(0, candidates.getFirst().letters().length())
-            .mapToObj(position ->
-                new LetterDistribution(
-                    position,
-                    candidates.stream()
-                        .map(word ->
-                            word.charAt(position))
-                        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-                        .entrySet()
-                        .stream()
-                        .map(entry ->
-                            new LetterCount(entry.getKey(), Math.toIntExact(entry.getValue())))
-                        .sorted(Comparator.<LetterCount>naturalOrder().reversed())
-                        .toList()
-                ))
-            .toList());
+        return new LetterDistributions(
+            IntStream.range(0, unitaryLength)
+                .mapToObj(position ->
+                    new LetterDistribution(
+                        position,
+                        candidates.stream()
+                            .map(word ->
+                                word.charAt(position))
+                            .collect(
+                                Collectors.groupingBy(
+                                    Function.identity(),
+                                    Collectors.counting()
+                                ))
+                            .entrySet()
+                            .stream()
+                            .map(entry ->
+                                new LetterCount(
+                                    entry.getKey(),
+                                    Math.toIntExact(entry.getValue())
+                                ))
+                            .sorted(Comparator.<LetterCount>naturalOrder().reversed())
+                            .toList()
+                    ))
+                .toList());
     }
 
     public Game set(Word solution) {
-        if (guesses.isEmpty()) {
-            if (candidates.contains(solution)) {
-                return new Game(solution, candidates, constraints, guesses);
-            }
+        if (!guesses.isEmpty()) {
+            throw new IllegalStateException(this + " is already in progress!");
+        }
+        if (!dictionary.contains(solution)) {
             throw new IllegalArgumentException("No such candidate: " + solution);
         }
-        throw new IllegalStateException(this + " is already in progress!");
+        return new Game(
+            solution,
+            unitaryLength,
+            dictionary,
+            candidates,
+            constraints,
+            guesses
+        );
     }
 
     public Game guessWord() {
@@ -101,11 +122,11 @@ public record Game(
     }
 
     public List<WordElim> hottestCandidates() {
-        List<WordElim> desc = hotCandidatesDescending();
+        var desc = hotCandidatesDescending();
         if (desc.isEmpty()) {
             return desc;
         }
-        int max = desc.getFirst().eliminated();
+        var max = desc.getFirst().eliminated();
         return desc.stream()
             .takeWhile(wordElim ->
                 wordElim.eliminated() == max)
@@ -113,13 +134,14 @@ public record Game(
     }
 
     public List<WordElim> hotCandidatesDescending() {
-        return (solution == null
-            ? averageHotCandidates()
-            : candidates.stream()
-                .map(guess ->
-                    new WordElim(guess, eliminated(guess, solution)))
-        ).sorted(DESCENDING_ELIMINATION)
-            .toList();
+        return byElimination(solution != null
+            ? hotCandidates(solution, candidates)
+            : averageHotCandidates(candidates)
+        );
+    }
+
+    public List<WordElim> hotEliminatorsDescending() {
+        return byElimination(averageHotCandidates(dictionary));
     }
 
     public boolean done() {
@@ -132,18 +154,56 @@ public record Game(
     }
 
     public Game random() {
-        return new Game(randomElement(candidates), candidates, constraints, guesses);
+        return new Game(
+            randomElement(candidates),
+            unitaryLength,
+            dictionary,
+            candidates,
+            constraints,
+            guesses
+        );
+    }
+
+    public WordScores wordScores() {
+        List<WordElim> wordElims = hotCandidatesDescending();
+        if (wordElims.isEmpty()) {
+            return WordScores.EMPTY;
+        }
+        LetterDistributions distribution = distribution();
+        List<WordScore> wordScores = wordElims.stream()
+            .map(elim ->
+                new WordScore(
+                    elim.word(),
+                    distribution.score(elim.word()),
+                    elim.eliminated()
+                ))
+            .toList();
+        return new WordScores(
+            wordScores,
+            wordElims.stream()
+                .mapToInt(WordElim::eliminated)
+                .max()
+                .orElseThrow(),
+            wordScores.stream()
+                .mapToDouble(WordScore::distribution)
+                .max()
+                .orElseThrow()
+        );
     }
 
     private Game apply(Word guess, List<Constraint> guessConstraints) {
-        var newConstraints = mergeConstraints(this.constraints, guessConstraints);
+        if (guess.length() != unitaryLength) {
+            throw new IllegalArgumentException("Guess length must be " + unitaryLength + ": " + guess);
+        }
+        var newConstraints = mergeConstraints(constraints, guessConstraints);
         var trimmedCandidates = viable(candidates, newConstraints);
-        return new Game(solution, trimmedCandidates, newConstraints, add(guess));
+        return new Game(solution, unitaryLength, dictionary, trimmedCandidates, newConstraints, add(guess));
     }
 
-    private Stream<WordElim> averageHotCandidates() {
-        return candidates.stream().parallel()
-            .map(this::hotCandidates)
+    private Stream<WordElim> averageHotCandidates(Collection<Word> words) {
+        return words.stream().parallel()
+            .map(candidate ->
+                hotCandidates(candidate, words))
             .map(Game::mapByWord)
             .reduce(Game::merge)
             .map(Game::average)
@@ -153,8 +213,8 @@ public record Game(
             .sorted(DESCENDING_ELIMINATION);
     }
 
-    private Stream<WordElim> hotCandidates(Word solution) {
-        return candidates.stream()
+    private Stream<WordElim> hotCandidates(Word solution, Collection<Word> words) {
+        return words.stream()
             .map(guess ->
                 new WordElim(guess, eliminated(guess, solution)));
     }
@@ -177,7 +237,28 @@ public record Game(
     private static final Comparator<WordElim> DESCENDING_ELIMINATION =
         Comparator.comparing(WordElim::eliminated).reversed();
 
-    private static List<Word> viable(List<Word> candidates, List<Constraint> constraints) {
+    private static List<WordElim> byElimination(Stream<WordElim> wordElimStream) {
+        return wordElimStream.sorted(DESCENDING_ELIMINATION)
+            .toList();
+    }
+
+    @SafeVarargs
+    private static int unitaryLength(Collection<Word>... wordses) {
+        return Arrays.stream(wordses)
+            .flatMap(Collection::stream)
+            .distinct()
+            .mapToInt(Word::length)
+            .reduce((l1, l2) -> {
+                if (l1 != l2) {
+                    throw new IllegalStateException("Different lengths detected: " + l1 + " != " + l2);
+                }
+                return l1;
+            }).orElseThrow(() ->
+                new IllegalStateException("No words in collection")
+            );
+    }
+
+    private static List<Word> viable(Collection<Word> candidates, List<Constraint> constraints) {
         return candidates.stream()
             .filter(satisfiesConstraints(constraints))
             .toList();
@@ -189,18 +270,26 @@ public record Game(
 
     @SafeVarargs
     private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
-        return Arrays.stream(collections)
+        List<Constraint> constraints = Arrays.stream(collections)
             .flatMap(Collection::stream)
             .distinct()
+            .toList();
+        Set<Character> fixes = constraints.stream()
+            .filter(constraint -> constraint instanceof Constraint.Fixed)
+            .map(Constraint::c)
+            .collect(Collectors.toSet());
+        return constraints.stream()
+            .filter(constraint ->
+                !(constraint instanceof Constraint.Unused(char c) && fixes.contains(c)))
             .toList();
     }
 
     private static Map<Word, WordElim> mapByWord(Stream<WordElim> list) {
-        return list.collect(Collectors.toMap(
+        return list.collect(
+            Collectors.toMap(
                 WordElim::word,
                 Function.identity()
-            )
-        );
+            ));
     }
 
     private static Map<Word, WordElim> merge(Map<Word, WordElim> m, Map<Word, WordElim> other) {
@@ -237,8 +326,9 @@ public record Game(
                     constraint.excludes(word));
     }
 
-    private static <T> T randomElement(List<T> list) {
-        return list.get(RND.nextInt(list.size()));
+    private static <T> T randomElement(Collection<T> coll) {
+        var index = RND.nextInt(coll.size());
+        return (coll instanceof List<T> l ? l : new ArrayList<>(coll)).get(index);
     }
 
     @Override

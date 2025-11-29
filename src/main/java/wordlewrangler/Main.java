@@ -51,7 +51,7 @@ void main() {
     }
 }
 
-private static void printWords(List<?> l) {
+private static void printWords(Collection<?> l) {
     l.stream()
         .gather(Gatherers.windowFixed(5))
         .forEach(window -> {

@@ -4,8 +4,10 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@SuppressWarnings("NullableProblems")
 public record LetterDistributions(List<LetterDistribution> distributions) {
 
     public String scoreStr(Word word) {
@@ -23,5 +25,14 @@ public record LetterDistributions(List<LetterDistribution> distributions) {
         return distributions.get(position).score(c);
     }
 
-    privateµ static final NumberFormat NUMBER_INSTANCE = DecimalFormat.getNumberInstance(Locale.ROOT);
+    private static final NumberFormat NUMBER_INSTANCE = DecimalFormat.getNumberInstance(Locale.ROOT);
+
+    @Override
+    public String toString() {
+        return "{" +
+               distributions.stream()
+                   .map(Object::toString)
+                   .collect(Collectors.joining("/")) +
+               "}";
+    }
 }
