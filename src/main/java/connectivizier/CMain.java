@@ -32,5 +32,6 @@ void main() {
     System.out.println("Total guesses: " + connections.guesses().count());
     System.out.println("Total distinct guesses: " + connections.guesses().distinct().count());
 
-//    var ab9F = connections.add("AB9F");
+    var ab9F = connections.add("9ABF");
+    System.out.println(ab9F);
 }

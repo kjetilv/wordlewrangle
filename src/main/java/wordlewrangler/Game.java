@@ -275,7 +275,7 @@ public record Game(
             .distinct()
             .toList();
         Set<Character> fixes = constraints.stream()
-            .filter(constraint -> constraint instanceof Constraint.Fixed)
+            .filter(Constraint.Fixed.class::isInstance)
             .map(Constraint::c)
             .collect(Collectors.toSet());
         return constraints.stream()

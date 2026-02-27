@@ -139,8 +139,22 @@ public class GameTest {
     @Test
     void test2025_10_27() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
-        game = game.tried("SLATE", "UUUUU");
-        game = game.tried("CRONY", "UFUUU");
+        game = game.tried("CLASP", "UUUUU");
+        game = game.tried("BONEY", "UUUUF");
+        game = game.tried("DIRTY", "FFUUF");
+//        game = game.tried("BONEY", "FUUFP");
+//        game = game.tried("SHEER", "FFUFP");
+//        game = game.tried("KNAVE", "PUFUF");
+//        game = game.tried("DROOL", "UUPUF");
+//        game = game.tried("FLUNK", "UFUUU");
+//        game = game.tried("GLOOM", "UFFFF");
+//        game = game.tried("CRONY", "PUFUU");
+//        game = game.tried("CHOCK", "UPFFU");
+//        game = game.tried("POOCH", "UFFFF");
+//        game = game.tried("HIPPO", "UUUUF");
+//        game = game.tried("DETER", "UPPUU");
+//        game = game.tried("HIPPO", "PUUFP");
+//        game = game.tried("CRONY", "UFUUU");
 //        game = game.tried("HARPY", "UFPUU");
 //        game = game.tried("BLARE", "UFFFF");
 //        game = game.tried("DETER", "PFFUU");

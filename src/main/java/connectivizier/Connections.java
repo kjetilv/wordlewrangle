@@ -22,7 +22,7 @@ public record Connections(List<Word> words, List<Attempt> attempts) {
                     .mapToObj(i ->
                         new Word(KEYS[i], splits.get(i)))
                     .toList(),
-                Collections.emptyList()
+                List.of()
             );
         }
         throw new IllegalArgumentException("Must have 16 words, got " + splits.size() + ": " + words);
@@ -55,9 +55,9 @@ public record Connections(List<Word> words, List<Attempt> attempts) {
             .collect(Collectors.toSet());
     }
 
-//    public Connections add(String codedGuess) {
-//
-//    }
+    public Connections add(String codedGuess) {
+        return this;
+    }
 
     public Connections add(Guess guess, Attempt attempt) {
         return new Connections(
