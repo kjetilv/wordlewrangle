@@ -12,14 +12,23 @@ import java.util.stream.Stream;
 public record Word(String letters) implements Comparable<Word> {
 
     public static List<Word> fromFile(Path path) {
+        return fromFile(path, false);
+    }
+
+    public static List<Word> fromFile(Path path, boolean filter) {
         try (
             var lines = Files.lines(path);
-            var words = words(lines)
+            var words = words(lines, filter)
         ) {
-            return Stream.concat(Stream.of(new Word("SLATE")), words)
+            return Stream.concat(
+                    Stream.of(
+                        new Word("SLATE"),
+                        new Word("CLASP")
+                    ), words
+                )
                 .toList();
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to read " + path);
+            throw new IllegalStateException("Failed to read " + path, e);
         }
     }
 
@@ -29,6 +38,10 @@ public record Word(String letters) implements Comparable<Word> {
     }
 
     public static Stream<Word> words(Stream<String> lines) {
+        return words(lines, false);
+    }
+
+    public static Stream<Word> words(Stream<String> lines, boolean filter) {
         return lines
             .map(line -> line.split("\\s+"))
             .flatMap(Arrays::stream)
@@ -36,12 +49,15 @@ public record Word(String letters) implements Comparable<Word> {
             .map(String::trim)
             .map(String::toUpperCase)
             .distinct()
-            .map(Word::new)
+            .flatMap(ls ->
+                filter && invalid(ls)
+                    ? Stream.empty()
+                    : Stream.of(new Word(ls)))
             .sorted();
     }
 
     public Word {
-        if (Objects.requireNonNull(letters, "string").length() != SIZE) {
+        if (invalid(letters)) {
             throw new IllegalArgumentException("Not a five-letter word: " + letters);
         }
     }
@@ -91,6 +107,11 @@ public record Word(String letters) implements Comparable<Word> {
     }
 
     static final int SIZE = 5;
+
+    private static boolean invalid(String letters) {
+        var str = Objects.requireNonNull(letters, "letters");
+        return str.length() != SIZE || !str.chars().allMatch(Character::isAlphabetic);
+    }
 
     @SuppressWarnings("NullableProblems")
     @Override

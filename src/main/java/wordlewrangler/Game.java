@@ -104,18 +104,11 @@ public record Game(
         if (solution == null) {
             throw new IllegalStateException(this + " is a secret game, constraints must be supplied with new guess");
         }
-        return apply(
-            guess,
-            constraintsAgainst(solution, guess)
-        );
+        return apply(guess, constraintsAgainst(solution, guess));
     }
 
     public Game tried(String guess, String spec) {
-        return apply(
-            new Word(guess),
-            providedConstraints(guess, spec)
-        );
-    }
+        return apply(new Word(guess), providedConstraints(guess, spec));}
 
     public WordElim someHotCandidate() {
         return randomElement(hottestCandidates());
@@ -145,8 +138,7 @@ public record Game(
     }
 
     public boolean done() {
-        return candidates.isEmpty() ||
-               !guesses.isEmpty() && guesses.getLast().equals(solution);
+        return candidates.isEmpty() || !guesses.isEmpty() && guesses.getLast().equals(solution);
     }
 
     public Word lastGuess() {

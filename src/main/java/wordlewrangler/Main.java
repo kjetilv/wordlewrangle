@@ -1,3 +1,4 @@
+import module java.base;
 import wordlewrangler.Constraint;
 import wordlewrangler.Game;
 import wordlewrangler.Word;
@@ -11,7 +12,7 @@ static Word random(List<Word> words) {
 
 @SuppressWarnings("MethodMayBeStatic")
 void main() {
-    var words = Word.fromFile(Path.of("words.txt"));
+    var words = Word.fromFile(Path.of("words.txt"), false);
     var game = new Game(words).random().guessWord();
 
     System.out.println("Word   : " + game.solution());

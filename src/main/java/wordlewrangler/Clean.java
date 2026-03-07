@@ -6,7 +6,7 @@ void main() {
         .parallel()
         .map(Path::of)
         .forEach(path -> {
-            List<Word> all = Word.fromFile(path)
+            List<Word> all = Word.fromFile(path, true)
                 .stream()
                 .distinct()
                 .toList();

@@ -1,10 +1,7 @@
 package wordlewrangler;
 
+import module java.base;
 import org.junit.jupiter.api.Test;
-
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -116,6 +113,31 @@ public class GameTest {
 //        System.out.println(depot.hottestCandidates());
     }
 
+    //
+    @Test
+    void testNoTheme() {
+        var game = new Game(
+            Stream.of(
+                    "CLASP",
+                    "BORED",
+                    "THINE",
+                    "THEME",
+                    "THEFT",
+                    "TONER",
+                    "THYNE"
+                )
+                .map(Word::new)
+                .toList()
+        );
+
+        var clasp = game.tried("CLASP", "UUUUU")
+            .tried("BORED", "UUUPU")
+            .tried("THINE", "FFUUP");
+        assertThat(clasp.wordScores().ratings())
+            .noneMatch(rating ->
+                rating.getValue().word().equals(new Word("THEME")));
+    }
+
     @Test
     void test2025_10_25() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
@@ -140,8 +162,11 @@ public class GameTest {
     void test2025_10_27() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
         game = game.tried("CLASP", "UUUUU");
-        game = game.tried("BONEY", "UUUUF");
-        game = game.tried("DIRTY", "FFUUF");
+        game = game.tried("TONED", "UFUPU");
+        game = game.tried("GORGE", "PFUUF");
+//        game = game.tried("LITRE", "FFUUP");
+//        game = game.tried("LIVEN", "FFUFF");
+//        game = game.tried("ARDOR", "PPFUU");
 //        game = game.tried("BONEY", "FUUFP");
 //        game = game.tried("SHEER", "FFUFP");
 //        game = game.tried("KNAVE", "PUFUF");
@@ -174,7 +199,8 @@ public class GameTest {
 
         WordScores scores = game.wordScores();
 
-        scores.ratings().forEach(System.out::println);
+        scores.ratings()
+            .forEach(System.out::println);
 
 //        hotCandidatesDescending.stream()
 //            .map(elim ->
