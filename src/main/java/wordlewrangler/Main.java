@@ -2,7 +2,6 @@ import module java.base;
 import wordlewrangler.Constraint;
 import wordlewrangler.Game;
 import wordlewrangler.Word;
-import wordlewrangler.WordElim;
 
 public static final Random RND = new Random();
 
@@ -72,7 +71,6 @@ private static void printConstraints(Collection<Constraint> constraints) {
 
 private static List<Constraint> findConstraints(Word guess, Word selected) {
     return guess.indexedChars()
-        .map(selected::constraintFor)
+        .map(indexedChar -> selected.constraintFor(indexedChar.c(), indexedChar.index()))
         .toList();
 }
-

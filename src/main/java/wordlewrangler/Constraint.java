@@ -1,9 +1,6 @@
 package wordlewrangler;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -19,7 +16,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
                 return switch (type) {
                     case 'F' -> new Found(c, i);
                     case 'P' -> new Present(c, i);
-                    case 'U' -> new Unused(c, i);
+                    case 'U' -> new Unused(c);
                     default -> throw new IllegalArgumentException("Invalid constraint spec: " + spec);
                 };
             })
@@ -109,6 +106,17 @@ public sealed interface Constraint extends Comparable<Constraint> {
         }
 
         @Override
+        public boolean equals(Object o) {
+            return o instanceof Found(var fc, var ps) && c == fc &&
+                   Arrays.equals(positions, ps);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(c, Arrays.hashCode(positions));
+        }
+
+        @Override
         public String toString() {
             return "[✅" + c + " " + toStrings(positions) + "]";
         }
@@ -137,7 +145,17 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
         @Override
         public boolean excludes(Word word) {
-            return !word.containsAt(positions, c);
+            return !word.contains(c) || word.containsAt(c, positions);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof Present(var pc, var ps) && c == pc && Arrays.equals(positions, ps);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(c, Arrays.hashCode(positions));
         }
 
         @Override
@@ -160,6 +178,12 @@ public sealed interface Constraint extends Comparable<Constraint> {
         @Override
         public Constraint merge(Constraint constraint) {
             if (constraint instanceof Unused(var uc, var pos) && uc == c) {
+                if (positions.length == 5) {
+                    return this;
+                }
+                if (pos.length == 5) {
+                    return new Unused(c);
+                }
                 return new Unused(c, Constraint.combine(this.positions, pos));
             }
             throw new IllegalStateException(this + " cannot merge with  " + constraint);
@@ -180,6 +204,16 @@ public sealed interface Constraint extends Comparable<Constraint> {
                 }
             }
             return false;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof Unused(var uc, var ps) && c == uc && Arrays.equals(positions, ps);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(c, Arrays.hashCode(positions));
         }
 
         @Override

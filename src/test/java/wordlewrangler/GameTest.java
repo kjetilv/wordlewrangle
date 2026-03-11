@@ -18,8 +18,10 @@ public class GameTest {
         println(game1);
         var game2 = game1.tryWord("PAINT");
         println(game2);
-        assertThat(game2.hottestCandidates()).anyMatch(
-            w -> w.word().equals(new Word("TAUNT")));
+        var actual = game2.hottestCandidates();
+        assertThat(actual).map(WordElim::word)
+            .doesNotContain(new Word("TAUNT"))
+            .contains(new Word("TAWNY"));
         assertThat(game2.tryWord("TAUNT").done()).isTrue();
     }
 
@@ -189,11 +191,12 @@ public class GameTest {
     void test2025_10_27() {
         var past = Word.fromFile("past.txt");
         var game = new Game(Word.fromFile("words.txt"))
-//            .past(past)
-            ;
+            .past(past);
 
         game = game.tried("CLASP", "UUUUU");
-//        game = game.tried("SALAD", "FUPFU");
+        game = game.tried("TONER", "FUUPU");
+//        game = game.tried("TRITE", "FUUUP");
+//        game = game.tried("TWERK", "FUPUU");
 //        game = game.tried("SPEAL", "FUUFF");
 //        game = game.tried("RETIE", "UFUPU");
 //        game = game.tried("DEIGN", "UFFFU");
@@ -202,7 +205,8 @@ public class GameTest {
 
         var distribution = game.distribution();
         println(distribution.distributions().size() + " distributions:");
-        distribution.distributions().forEach(System.out::println);
+        distribution.distributions()
+            .forEach(System.out::println);
         println();
         var hotCandidatesDescending = game.hotCandidatesDescending();
         println(hotCandidatesDescending.size() + " hot candidates:");

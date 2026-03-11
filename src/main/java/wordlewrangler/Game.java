@@ -332,9 +332,9 @@ public record Game(
             .flatMap(Optional::stream)
             .toList();
 
-        var presents = combinedPresents(remaining, Constraint.Present.class);
-        var founds = combinedPresents(remaining, Constraint.Found.class);
-        var negations = combinedPresents(remaining, Constraint.Unused.class);
+        var presents = combine(remaining, Constraint.Present.class);
+        var founds = combine(remaining, Constraint.Found.class);
+        var negations = combine(remaining, Constraint.Unused.class);
         return Stream.of(
                 presents,
                 founds,
@@ -344,7 +344,7 @@ public record Game(
             .toList();
     }
 
-    private static List<Constraint> combinedPresents(
+    private static List<Constraint> combine(
         List<Constraint> constraints,
         Class<? extends Constraint> type
     ) {
@@ -401,9 +401,11 @@ public record Game(
     }
 
     private static List<Constraint> constraintsAgainst(Word solution, Word guess) {
-        return guess.indexedChars()
-            .map(Objects.requireNonNull(solution, "assumed")::constraintFor)
-            .toList();
+        List<Constraint> constraints = new ArrayList<>(guess.length());
+        for (int i = 0; i < guess.length(); i++) {
+            constraints.add(solution.constraintFor(guess.charAt(i), i));
+        }
+        return constraints;
     }
 
     private static <T> T randomElement(Collection<T> coll) {

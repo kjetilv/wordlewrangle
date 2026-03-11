@@ -4,12 +4,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public record Word(String letters) implements Comparable<Word> {
+public record Word(char[] letters) implements Comparable<Word> {
 
     public static List<Word> fromFile(String path) {
         return fromFile(Path.of(path));
@@ -53,6 +53,7 @@ public record Word(String letters) implements Comparable<Word> {
             .map(String::trim)
             .map(String::toUpperCase)
             .distinct()
+            .map(String::toCharArray)
             .flatMap(ls ->
                 filter && invalid(ls)
                     ? Stream.empty()
@@ -60,14 +61,18 @@ public record Word(String letters) implements Comparable<Word> {
             .sorted();
     }
 
+    public Word(String word) {
+        this(word.toUpperCase(Locale.ROOT).toCharArray());
+    }
+
     public Word {
         if (invalid(letters)) {
-            throw new IllegalArgumentException("Not a five-letter word: " + letters);
+            throw new IllegalArgumentException("Not a five-letter word: " + new String(letters));
         }
     }
 
     public int length() {
-        return letters.length();
+        return letters.length;
     }
 
     @Override
@@ -76,32 +81,31 @@ public record Word(String letters) implements Comparable<Word> {
     }
 
     public boolean contains(char c) {
-        return letters.indexOf(c) >= 0;
+        for (char letter : letters) {
+            if (letter == c) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public boolean containsAt(int[] positions, char c) {
-        var letters = this.letters().toCharArray();
+    public boolean containsAt(char c, int[] positions) {
         if (positions.length == 1) {
             return letters[positions[0]] == c;
         }
-        for (char letter : letters) {
-            if (letter == c) {
-                boolean[] matches = new boolean[5];
-                var found = false;
-                for (int i = 0; i < matches.length; i++) {
-                    if (letters[i] == c) {
-                        matches[i] = true;
-                        found = true;
-                    }
-                }
-                if (!found) {
-                    return false;
-                }
-                for (int position : positions) {
-                    if (!matches[position]) {
-                        return false;
-                    }
-                }
+        boolean[] matches = new boolean[5];
+        var found = false;
+        for (int i = 0; i < matches.length; i++) {
+            if (letters[i] == c) {
+                matches[i] = true;
+                found = true;
+            }
+        }
+        if (!found) {
+            return false;
+        }
+        for (int position : positions) {
+            if (matches[position]) {
                 return true;
             }
         }
@@ -109,42 +113,54 @@ public record Word(String letters) implements Comparable<Word> {
     }
 
     public Stream<IndexedChar> indexedChars() {
-        return IntStream.range(0, letters.length())
-            .mapToObj(i -> new IndexedChar(i, letters.charAt(i)));
+        return IntStream.range(0, letters.length)
+            .mapToObj(i -> new IndexedChar(i, letters[i]));
     }
 
     public char charAt(int index) {
-        return letters().charAt(index);
+        return letters[index];
     }
 
-    public Constraint constraintFor(IndexedChar indexedChar) {
-        for (var index = 0; index < letters.length(); index++) {
-            if (charAt(index) == indexedChar.c()) {
-                if (index == indexedChar.index()) {
-                    return new Constraint.Found(indexedChar.c(), indexedChar.index());
+    public Constraint constraintFor(char c, int index) {
+        for (var i = 0; i < letters.length; i++) {
+            if (charAt(i) == c) {
+                if (i == index) {
+                    return new Constraint.Found(c, index);
                 }
-                return new Constraint.Present(indexedChar.c(), indexedChar.index());
+                return new Constraint.Present(c, index);
             }
         }
-        return new Constraint.Unused(indexedChar.c(), indexedChar.index());
-    }
-
-    Stream<Character> chars() {
-        return indexedChars().map(IndexedChar::c);
+        return new Constraint.Unused(c, index);
     }
 
     static final int SIZE = 5;
 
-    private static boolean invalid(String letters) {
+    private static boolean invalid(char[] letters) {
         var str = Objects.requireNonNull(letters, "letters");
-        return str.length() != SIZE || !str.chars().allMatch(Character::isAlphabetic);
+        if (str.length != SIZE) {
+            return true;
+        }
+        for (char c : letters) {
+            if (!Character.isAlphabetic(c)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof Word(var other) && Arrays.equals(this.letters, other);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(letters);
     }
 
     @SuppressWarnings("NullableProblems")
     @Override
     public String toString() {
-        return chars()
-            .map(Object::toString)
-            .collect(Collectors.joining(""));
+        return new String(letters);
     }
 }
