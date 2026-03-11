@@ -71,7 +71,7 @@ public record Connections(List<Word> words, List<Attempt> attempts) {
     }
 
     public String string() {
-        int width = words.stream().mapToInt(Word::size).max().orElseThrow();
+        var width = words.stream().mapToInt(Word::size).max().orElseThrow();
         var wordStream = unguessed();
         var guessedRows = attempts.stream()
             .filter(Attempt::isCorrect)

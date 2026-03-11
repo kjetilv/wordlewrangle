@@ -15,10 +15,11 @@ public record LetterDistributions(List<LetterDistribution> distributions) {
     }
 
     public double score(Word word) {
-        return IntStream.range(0, distributions.size())
-            .mapToDouble(position ->
-                score(position, word.charAt(position)))
-            .sum();
+        double sum = 0d;
+        for (int i = 0; i < distributions.size(); i++) {
+            sum += score(i, word.charAt(i));
+        }
+        return sum;
     }
 
     public double score(int position, char c) {

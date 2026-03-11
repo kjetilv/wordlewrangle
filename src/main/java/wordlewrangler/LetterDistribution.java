@@ -22,7 +22,7 @@ public record LetterDistribution(
     }
 
     public double score(char c) {
-        for (LetterCount letterCount : letterCounts) {
+        for (var letterCount : letterCounts) {
             if (letterCount.c() == c) {
                 return score(letterCount);
             }

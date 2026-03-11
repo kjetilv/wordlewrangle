@@ -15,38 +15,38 @@ void main() {
     var words = Word.fromFile(Path.of("words.txt"), false);
     var game = new Game(words).random().guessWord();
 
-    System.out.println("Word   : " + game.solution());
+    IO.println("Word   : " + game.solution());
 
     while (true) {
         if (game.done()) {
-            System.out.println("\nFound it! " + game.lastGuess() + "!\n\nGuesses: " + game.guesses()
+            IO.println("\nFound it! " + game.lastGuess() + "!\n\nGuesses: " + game.guesses()
                 .stream()
                 .map(Word::toString)
                 .collect(Collectors.joining(" ")));
             return;
         }
 
-        System.out.println("\nGuess " + game.guesses().size() + ": " + game.lastGuess());
+        IO.println("\nGuess " + game.guesses().size() + ": " + game.lastGuess());
 
-        System.out.println("Constraints:");
+        IO.println("Constraints:");
         printConstraints(game.constraints());
 
         if (game.candidates().size() > 20) {
-            System.out.println("Still viable: " + game.candidates().size());
+            IO.println("Still viable: " + game.candidates().size());
         } else {
-            System.out.println("Still viable:");
+            IO.println("Still viable:");
             printWords(game.candidates());
         }
 
-        List<WordElim> wordElims = game.hottestCandidates()
+        var wordElims = game.hottestCandidates()
             .stream()
             .toList();
-        System.out.println("Hot candidates: " + wordElims.size());
+        IO.println("Hot candidates: " + wordElims.size());
         printWords(wordElims);
 
         var hotCandidate = game.someHotCandidate();
         var hotWord = hotCandidate.word();
-        System.out.println("Trying hot word: " + hotWord);
+        IO.println("Trying hot word: " + hotWord);
 
         game = game.tryWord(hotWord);
     }
@@ -57,12 +57,12 @@ private static void printWords(Collection<?> l) {
         .gather(Gatherers.windowFixed(5))
         .forEach(window -> {
             window.forEach(i -> System.out.print(" " + i));
-            System.out.println();
+            IO.println();
         });
 }
 
 private static void printConstraints(Collection<Constraint> constraints) {
-    System.out.println(" " + constraints.stream().sorted()
+    IO.println(" " + constraints.stream().sorted()
         .map(Object::toString)
         .gather(Gatherers.windowFixed(5))
         .map(list ->

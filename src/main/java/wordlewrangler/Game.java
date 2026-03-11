@@ -13,22 +13,42 @@ public record Game(
     int unitaryLength,
     Collection<Word> dictionary,
     Collection<Word> candidates,
+    Collection<Word> past,
     List<Constraint> constraints,
     List<Word> guesses
 ) {
+    public static final Predicate<Constraint> FOUND = Constraint.Found.class::isInstance;
+
+    public Game(
+        Word solution,
+        int unitaryLength,
+        Collection<Word> dictionary,
+        Collection<Word> candidates,
+        Collection<Word> past,
+        List<Constraint> constraints,
+        List<Word> guesses
+    ) {
+        this.solution = solution;
+        this.unitaryLength = unitaryLength;
+        this.dictionary = Set.copyOf(dictionary);
+        this.candidates = Set.copyOf(candidates);
+        this.past = Set.copyOf(past);
+        this.constraints = constraints;
+        this.guesses = guesses;
+    }
 
     public Game(List<Word> candidates) {
         this(null, candidates);
     }
 
-    public Game(Word solution, List<Word> dictionary) {
-        if (dictionary.isEmpty()) {
-            throw new IllegalStateException("Empty dictionary");
+    public Game(Word solution, List<Word> candidates) {
+        if (candidates.isEmpty()) {
+            throw new IllegalStateException("Empty candidates");
         }
-        var length = unitaryLength(dictionary);
+        var length = unitaryLength(candidates);
         if (solution != null) {
-            if (!dictionary.contains(solution)) {
-                throw new IllegalArgumentException("Invalid solution, not contained in dictionary: " + solution);
+            if (!candidates.contains(solution)) {
+                throw new IllegalArgumentException("Invalid solution, not contained in candidates: " + solution);
             }
             if (solution.length() != length) {
                 throw new IllegalStateException("Invalid length for solution, should be " + length + ": " + solution);
@@ -37,10 +57,25 @@ public record Game(
         this(
             solution,
             length,
-            dictionary,
-            dictionary,
+            candidates,
+            candidates,
+            List.of(),
             Collections.emptyList(),
             Collections.emptyList()
+        );
+    }
+
+    public Game past(Collection<Word> past) {
+        return new Game(
+            solution,
+            unitaryLength,
+            dictionary,
+            candidates.stream()
+                .filter(word -> !past.contains(word))
+                .toList(),
+            past,
+            constraints,
+            guesses
         );
     }
 
@@ -87,6 +122,7 @@ public record Game(
             unitaryLength,
             dictionary,
             candidates,
+            past,
             constraints,
             guesses
         );
@@ -108,7 +144,8 @@ public record Game(
     }
 
     public Game tried(String guess, String spec) {
-        return apply(new Word(guess), providedConstraints(guess, spec));}
+        return apply(new Word(guess), providedConstraints(guess, spec));
+    }
 
     public WordElim someHotCandidate() {
         return randomElement(hottestCandidates());
@@ -151,18 +188,19 @@ public record Game(
             unitaryLength,
             dictionary,
             candidates,
+            past,
             constraints,
             guesses
         );
     }
 
     public WordScores wordScores() {
-        List<WordElim> wordElims = hotCandidatesDescending();
+        var wordElims = hotCandidatesDescending();
         if (wordElims.isEmpty()) {
             return WordScores.EMPTY;
         }
-        LetterDistributions distribution = distribution();
-        List<WordScore> wordScores = wordElims.stream()
+        var distribution = distribution();
+        var wordScores = wordElims.stream()
             .map(elim ->
                 new WordScore(
                     elim.word(),
@@ -188,8 +226,8 @@ public record Game(
             throw new IllegalArgumentException("Guess length must be " + unitaryLength + ": " + guess);
         }
         var newConstraints = mergeConstraints(constraints, guessConstraints);
-        var trimmedCandidates = viable(candidates, newConstraints);
-        return new Game(solution, unitaryLength, dictionary, trimmedCandidates, newConstraints, add(guess));
+        var trimmedCandidates = viable(candidates, newConstraints.toArray(Constraint[]::new));
+        return new Game(solution, unitaryLength, dictionary, trimmedCandidates, past, newConstraints, add(guess));
     }
 
     private Stream<WordElim> averageHotCandidates(Collection<Word> words) {
@@ -215,7 +253,7 @@ public record Game(
         Objects.requireNonNull(assumingSolution, "assumingSolution");
         var wordConstraints = constraintsAgainst(assumingSolution, guess);
         var combinedConstraints = mergeConstraints(this.constraints, wordConstraints);
-        var remaining = viable(candidates, combinedConstraints).size();
+        var remaining = viable(candidates, combinedConstraints.toArray(Constraint[]::new)).size();
         return candidates.size() - remaining;
     }
 
@@ -250,10 +288,23 @@ public record Game(
             );
     }
 
-    private static List<Word> viable(Collection<Word> candidates, List<Constraint> constraints) {
-        return candidates.stream()
-            .filter(satisfiesConstraints(constraints))
-            .toList();
+    private static List<Word> viable(Collection<Word> candidates, Constraint[] constraints) {
+        List<Word> viable = new ArrayList<>();
+        for (Word word : candidates) {
+            if (viable(constraints, word)) {
+                viable.add(word);
+            }
+        }
+        return viable;
+    }
+
+    private static boolean viable(Constraint[] constraints, Word word) {
+        for (Constraint constraint : constraints) {
+            if (constraint.excludes(word)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<Constraint> providedConstraints(String guess, String spec) {
@@ -262,18 +313,62 @@ public record Game(
 
     @SafeVarargs
     private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
-        List<Constraint> constraints = Arrays.stream(collections)
+        var constraints = Arrays.stream(collections)
             .flatMap(Collection::stream)
             .distinct()
             .toList();
-        Set<Character> fixes = constraints.stream()
-            .filter(Constraint.Fixed.class::isInstance)
+        var foundPositions = constraints.stream()
+            .map(Constraint::foundPositions)
+            .flatMap(IntStream::boxed)
+            .collect(Collectors.toSet());
+        var foundChars = constraints.stream()
+            .filter(FOUND)
             .map(Constraint::c)
             .collect(Collectors.toSet());
-        return constraints.stream()
-            .filter(constraint ->
-                !(constraint instanceof Constraint.Unused(char c) && fixes.contains(c)))
+
+        var remaining = constraints.stream()
+            .map(constraint ->
+                constraint.clearFound(foundPositions))
+            .flatMap(Optional::stream)
             .toList();
+
+        var presents = combinedPresents(remaining, Constraint.Present.class);
+        var founds = combinedPresents(remaining, Constraint.Found.class);
+        var negations = combinedPresents(remaining, Constraint.Unused.class);
+        return Stream.of(
+                presents,
+                founds,
+                negations
+            )
+            .flatMap(List::stream)
+            .toList();
+    }
+
+    private static List<Constraint> combinedPresents(
+        List<Constraint> constraints,
+        Class<? extends Constraint> type
+    ) {
+        return constraints.stream()
+            .filter(type::isInstance)
+            .collect(Collectors.groupingBy(Constraint::c))
+            .entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                Function.identity(),
+                entry ->
+                    combined(entry, entry.getValue())
+            ))
+            .values()
+            .stream()
+            .sorted()
+            .toList();
+    }
+
+    private static Constraint combined(Map.Entry<Character, List<Constraint>> entry, List<Constraint> values) {
+        return values.stream()
+            .reduce(Constraint::merge)
+            .orElseThrow(() ->
+                new IllegalStateException("Cannot merge constraints for " + entry.getKey()));
     }
 
     private static Map<Word, WordElim> mapByWord(Stream<WordElim> list) {
@@ -309,13 +404,6 @@ public record Game(
         return guess.indexedChars()
             .map(Objects.requireNonNull(solution, "assumed")::constraintFor)
             .toList();
-    }
-
-    private static Predicate<Word> satisfiesConstraints(List<Constraint> constraints) {
-        return word ->
-            constraints.stream()
-                .noneMatch(constraint ->
-                    constraint.excludes(word));
     }
 
     private static <T> T randomElement(Collection<T> coll) {

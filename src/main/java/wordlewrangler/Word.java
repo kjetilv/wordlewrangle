@@ -11,6 +11,10 @@ import java.util.stream.Stream;
 
 public record Word(String letters) implements Comparable<Word> {
 
+    public static List<Word> fromFile(String path) {
+        return fromFile(Path.of(path));
+    }
+
     public static List<Word> fromFile(Path path) {
         return fromFile(path, false);
     }
@@ -75,10 +79,33 @@ public record Word(String letters) implements Comparable<Word> {
         return letters.indexOf(c) >= 0;
     }
 
-    public boolean containsAll(char c, List<Integer> excluded) {
-        return IntStream.range(0, letters.length())
-            .filter(index -> charAt(index) == c)
-            .allMatch(excluded::contains);
+    public boolean containsAt(int[] positions, char c) {
+        var letters = this.letters().toCharArray();
+        if (positions.length == 1) {
+            return letters[positions[0]] == c;
+        }
+        for (char letter : letters) {
+            if (letter == c) {
+                boolean[] matches = new boolean[5];
+                var found = false;
+                for (int i = 0; i < matches.length; i++) {
+                    if (letters[i] == c) {
+                        matches[i] = true;
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    return false;
+                }
+                for (int position : positions) {
+                    if (!matches[position]) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     public Stream<IndexedChar> indexedChars() {
@@ -94,12 +121,12 @@ public record Word(String letters) implements Comparable<Word> {
         for (var index = 0; index < letters.length(); index++) {
             if (charAt(index) == indexedChar.c()) {
                 if (index == indexedChar.index()) {
-                    return new Constraint.Fixed(indexedChar.c(), indexedChar.index());
+                    return new Constraint.Found(indexedChar.c(), indexedChar.index());
                 }
                 return new Constraint.Present(indexedChar.c(), indexedChar.index());
             }
         }
-        return new Constraint.Unused(indexedChar.c());
+        return new Constraint.Unused(indexedChar.c(), indexedChar.index());
     }
 
     Stream<Character> chars() {
@@ -116,7 +143,8 @@ public record Word(String letters) implements Comparable<Word> {
     @SuppressWarnings("NullableProblems")
     @Override
     public String toString() {
-        return chars().map(Object::toString)
+        return chars()
+            .map(Object::toString)
             .collect(Collectors.joining(""));
     }
 }

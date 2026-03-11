@@ -1,8 +1,10 @@
 package wordlewrangler;
 
 import module java.base;
+import org.assertj.core.api.ListAssert;
 import org.junit.jupiter.api.Test;
 
+import static java.lang.IO.println;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class GameTest {
@@ -13,9 +15,9 @@ public class GameTest {
             .set("TAUNT");
 
         var game1 = game.tryWord("FOYER");
-        System.out.println(game1);
+        println(game1);
         var game2 = game1.tryWord("PAINT");
-        System.out.println(game2);
+        println(game2);
         assertThat(game2.hottestCandidates()).anyMatch(
             w -> w.word().equals(new Word("TAUNT")));
         assertThat(game2.tryWord("TAUNT").done()).isTrue();
@@ -23,25 +25,25 @@ public class GameTest {
 
     @Test
     void dist() {
-        Game game = new Game(Word.fromFile(Path.of("words.txt")));
-        LetterDistributions distribution = game.distribution();
+        var game = new Game(Word.fromFile(Path.of("words.txt")));
+        var distribution = game.distribution();
         distribution.distributions()
             .stream()
             .map(Object::toString)
             .forEach(System.out::println);
 
-//        System.out.println(distribution.getFirst().score('S'));
-//        System.out.println(distribution.getFirst().score('Y'));
+//        IO.println(distribution.getFirst().score('S'));
+//        IO.println(distribution.getFirst().score('Y'));
     }
 
     @Test
     void test2025_10_14() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
 
-        Game slate = game.tried("SLATE", "UUUUU");
-        System.out.println(slate.hotCandidatesDescending());
+        var slate = game.tried("SLATE", "UUUUU");
+        println(slate.hotCandidatesDescending());
 //        Game mourn = slate.tried("MOURN", "PFPPU");
-//        System.out.println(mourn.hotCandidates());
+//        IO.println(mourn.hotCandidates());
 //        Game done = mourn.tried("FORUM", "PPPPP");
 //        assertThat(done.done()).isTrue();
     }
@@ -49,15 +51,15 @@ public class GameTest {
     @Test
     void test2025_10_17() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
-        Game slate = game.tried("SLATE", "UUPUP");
-        System.out.println(slate.hottestCandidates());
-        Game amber = slate.tried("AMBER", "PUUFU");
-        System.out.println(amber.hottestCandidates());
-        Game haven = slate.tried("HAVEN", "UUUUU");
+        var slate = game.tried("SLATE", "UUPUP");
+        println(slate.hottestCandidates());
+        var amber = slate.tried("AMBER", "PUUFU");
+        println(amber.hottestCandidates());
+        var haven = slate.tried("HAVEN", "UUUUU");
 //        Game mushy = slate.tried("HEARD", "UFFFF");
-//        System.out.println(mushy.hotCandidates());
+//        IO.println(mushy.hotCandidates());
 //        Game crisp = mushy.tried("CRISP", "UFUFU");
-//        System.out.println(crisp.hotCandidates());
+//        IO.println(crisp.hotCandidates());
 //        Game done = crisp.tried("GROSS", "PPPPP");
 //        assertThat(done.done()).isTrue();
     }
@@ -65,17 +67,17 @@ public class GameTest {
     @Test
     void test2025_10_20() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
-        Game slate = game.tried("SLATE", "UPUUU");
-        System.out.println(slate.hottestCandidates());
-        Game lurid = slate.tried("LURID", "FUUPU");
-        System.out.println(lurid.hottestCandidates());
-        Game lingo = lurid.tried("LINGO", "FFUUF");
-        System.out.println(lingo.hottestCandidates());
+        var slate = game.tried("SLATE", "UPUUU");
+        println(slate.hottestCandidates());
+        var lurid = slate.tried("LURID", "FUUPU");
+        println(lurid.hottestCandidates());
+        var lingo = lurid.tried("LINGO", "FFUUF");
+        println(lingo.hottestCandidates());
 
 //        Game mushy = slate.tried("HEARD", "UFFFF");
-//        System.out.println(mushy.hotCandidates());
+//        IO.println(mushy.hotCandidates());
 //        Game crisp = mushy.tried("CRISP", "UFUFU");
-//        System.out.println(crisp.hotCandidates());
+//        IO.println(crisp.hotCandidates());
 //        Game done = crisp.tried("GROSS", "PPPPP");
 //        assertThat(done.done()).isTrue();
     }
@@ -84,33 +86,57 @@ public class GameTest {
     void test2025_10_21() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
         var slate = game.tried("SLATE", "UUUPP");
-        System.out.println(slate.hottestCandidates());
+        println(slate.hottestCandidates());
         var tenor = game.tried("TENOR", "PFUFU");
-        System.out.println(tenor.hottestCandidates());
+        println(tenor.hottestCandidates());
         var depot = game.tried("DEPOT", "FFUFP");
-        System.out.println(depot.hottestCandidates());
+        println(depot.hottestCandidates());
     }
 
     @Test
     void test2025_10_22() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
         var slate = game.tried("SLATE", "FUUPU");
-        System.out.println(slate.hottestCandidates());
+        println(slate.hottestCandidates());
         var snout = game.tried("SNOUT", "FPUPF");
-        System.out.println(snout.hottestCandidates());
+        println(snout.hottestCandidates());
 //        var depot = game.tried("DEPOT", "FFUFP");
-//        System.out.println(depot.hottestCandidates());
+//        IO.println(depot.hottestCandidates());
     }
 
     @Test
     void test2025_10_24() {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
         var slate = game.tried("SLATE", "UUUPP");
-        System.out.println(slate.hotCandidatesDescending());
+        println(slate.hotCandidatesDescending());
         var bunch = slate.tried("BUNCH", "PFUUU");
-        System.out.println(bunch.hotCandidatesDescending());
+        println(bunch.hotCandidatesDescending());
 //        var depot = game.tried("DEPOT", "FFUFP");
-//        System.out.println(depot.hottestCandidates());
+//        IO.println(depot.hottestCandidates());
+    }
+
+    @Test
+    void testLobby() {
+        var game = new Game(
+            Stream.of(
+                    "SLATE",
+                    "LOLLY",
+                    "LORDY",
+                    "LOOPY",
+                    "LOWLY",
+                    "LOONY",
+                    "LOBBY"
+                )
+                .map(Word::new)
+                .toList()
+        );
+        var slate = game.tried("SLATE", "UPUUU");
+        var lolly = slate.tried("LOLLY", "FFUUF");
+        assertNotCandidate(lolly, "LOWLY");
+        var lordy = lolly.tried("LORDY", "FFUUF");
+        var loopy = lordy.tried("LOOPY", "FFUUF");
+        assertNotCandidate(loopy, "LOWLY");
+        assertNotCandidate(loopy, "LOONY");
     }
 
     //
@@ -130,12 +156,13 @@ public class GameTest {
                 .toList()
         );
 
-        var clasp = game.tried("CLASP", "UUUUU")
-            .tried("BORED", "UUUPU")
-            .tried("THINE", "FFUUP");
-        assertThat(clasp.wordScores().ratings())
-            .noneMatch(rating ->
-                rating.getValue().word().equals(new Word("THEME")));
+        var clasp = game.tried("CLASP", "UUUUU");
+        var bored = clasp.tried("BORED", "UUUPU");
+        assertCandidate(bored, "THEME");
+        var thine = bored.tried("THINE", "FFUUP");
+        assertNotCandidate(thine, "THEME")
+            .singleElement().matches(rating ->
+                rating.getValue().word().equals(new Word("THEFT")));
     }
 
     @Test
@@ -143,72 +170,70 @@ public class GameTest {
         var game = new Game(Word.fromFile(Path.of("words.txt")));
         var slate = game.tried("SLATE", "UUPUF");
         var barge = slate.tried("BARGE", "UFUFF");
-        LetterDistributions distribution = barge.distribution();
-        List<WordElim> hotCandidatesDescending = barge.hotCandidatesDescending();
+        var distribution = barge.distribution();
+        var hotCandidatesDescending = barge.hotCandidatesDescending();
 
-        System.out.println(distribution);
+        println(distribution);
 
         hotCandidatesDescending.stream()
             .map(elim ->
                 Map.entry(elim, distribution.scoreStr(elim.word())))
             .forEach(System.out::println);
 //        var bunch = slate.tried("BUNCH", "");
-//        System.out.println(bunch.hotCandidatesDescending());
+//        IO.println(bunch.hotCandidatesDescending());
 //        var depot = game.tried("DEPOT", "FFUFP");
-//        System.out.println(depot.hottestCandidates());
+//        IO.println(depot.hottestCandidates());
     }
 
     @Test
     void test2025_10_27() {
-        var game = new Game(Word.fromFile(Path.of("words.txt")));
+        var past = Word.fromFile("past.txt");
+        var game = new Game(Word.fromFile("words.txt"))
+//            .past(past)
+            ;
+
         game = game.tried("CLASP", "UUUUU");
-        game = game.tried("TONED", "UFUPU");
-        game = game.tried("GORGE", "PFUUF");
-//        game = game.tried("LITRE", "FFUUP");
-//        game = game.tried("LIVEN", "FFUFF");
-//        game = game.tried("ARDOR", "PPFUU");
-//        game = game.tried("BONEY", "FUUFP");
-//        game = game.tried("SHEER", "FFUFP");
-//        game = game.tried("KNAVE", "PUFUF");
-//        game = game.tried("DROOL", "UUPUF");
-//        game = game.tried("FLUNK", "UFUUU");
-//        game = game.tried("GLOOM", "UFFFF");
-//        game = game.tried("CRONY", "PUFUU");
-//        game = game.tried("CHOCK", "UPFFU");
-//        game = game.tried("POOCH", "UFFFF");
-//        game = game.tried("HIPPO", "UUUUF");
-//        game = game.tried("DETER", "UPPUU");
-//        game = game.tried("HIPPO", "PUUFP");
-//        game = game.tried("CRONY", "UFUUU");
-//        game = game.tried("HARPY", "UFPUU");
-//        game = game.tried("BLARE", "UFFFF");
-//        game = game.tried("DETER", "PFFUU");
-//        game = game.tried("FLUID", "UFFUU");
-//        game = game.tried("BAGEL", "UPUPF");
-//        game = game.tried("PEDAL", "UPPFF");
-//        var barge = slate.tried("BARGE", "UFUFF");
+//        game = game.tried("SALAD", "FUPFU");
+//        game = game.tried("SPEAL", "FUUFF");
+//        game = game.tried("RETIE", "UFUPU");
+//        game = game.tried("DEIGN", "UFFFU");
+//        game = game.tried("CREAK", "FPUFU");
+        println(game);
 
-        LetterDistributions distribution = game.distribution();
-        List<WordElim> hotCandidatesDescending = game.hotCandidatesDescending();
-//        List<WordElim> hotEliminatorsDescending = game.hotEliminatorsDescending();
+        var distribution = game.distribution();
+        println(distribution.distributions().size() + " distributions:");
+        distribution.distributions().forEach(System.out::println);
+        println();
+        var hotCandidatesDescending = game.hotCandidatesDescending();
+        println(hotCandidatesDescending.size() + " hot candidates:");
+        println(hotCandidatesDescending);
+        println();
 
-        System.out.println(hotCandidatesDescending);
-//        System.out.println(hotEliminatorsDescending);
-
-        System.out.println(distribution);
-
-        WordScores scores = game.wordScores();
-
+        var scores = game.wordScores();
+        println(scores.scores().size() + " scores:");
         scores.ratings()
             .forEach(System.out::println);
+        println();
 
 //        hotCandidatesDescending.stream()
 //            .map(elim ->
 //                Map.entry(elim, distribution.scoreStr(elim.word())))
 //            .forEach(System.out::println);
 //        var bunch = slate.tried("BUNCH", "");
-//        System.out.println(bunch.hotCandidatesDescending());
+//        IO.println(bunch.hotCandidatesDescending());
 //        var depot = game.tried("DEPOT", "FFUFP");
-//        System.out.println(depot.hottestCandidates());
+//        IO.println(depot.hottestCandidates());
+    }
+
+    private static ListAssert<Map.Entry<Double, WordScore>> assertNotCandidate(Game game, String word) {
+        return assertThat(game.wordScores().ratings())
+            .noneMatch(rating ->
+                rating.getValue().word().equals(new Word(word)));
+    }
+
+    private static ListAssert<Map.Entry<Double, WordScore>> assertCandidate(Game game, String word) {
+        return assertThat(game.wordScores().ratings())
+            .anyMatch(rating ->
+                rating.getValue().word().equals(new Word(word)));
     }
 }

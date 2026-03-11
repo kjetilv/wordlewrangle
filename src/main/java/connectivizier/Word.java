@@ -25,7 +25,7 @@ public record Word(char key, String word) implements Comparable<Word> {
 
     String string(int width) {
         var mySize = size();
-        int missing = Math.max(0, width - mySize);
+        var missing = Math.max(0, width - mySize);
         return "[" + key + " " + spaces(missing) + word + "]";
     }
 

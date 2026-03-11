@@ -1,8 +1,9 @@
+import module java.base;
 import wordlewrangler.Word;
 
 @SuppressWarnings("MethodMayBeStatic")
 void main() {
-    Stream.of("words.txt", "wordsish.txt", "words-expanded.txt")
+    Stream.of("words.txt", "wordsish.txt", "words-expanded.txt", "past.txt")
         .parallel()
         .map(Path::of)
         .forEach(path -> {
@@ -10,8 +11,8 @@ void main() {
                 .stream()
                 .distinct()
                 .toList();
-            String newFile = contents(all);
-            System.out.println(path + ": Found " + all.size() + " unique words.");
+            var newFile = contents(all);
+            IO.println(path + ": Found " + all.size() + " unique words.");
 
             try {
                 Files.write(path, newFile.getBytes());
