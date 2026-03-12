@@ -197,8 +197,9 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
         @Override
         public boolean excludes(Word word) {
+            var letters = word.letters();
             for (int position : positions) {
-                if (word.letters()[position] == c) {
+                if (letters[position] == c) {
                     return true;
                 }
             }

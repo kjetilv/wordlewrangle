@@ -198,6 +198,7 @@ public class GameTest {
             ;
 
         game = game.tried("WHIZZ", "UUUUU");
+//        game = game.tried("GOOEY", "UUUUU");
 //        game = game.tried("SPELL", "FUFFF");
 //        game = game.tried("TRITE", "FUUUP");
 //        game = game.tried("TWERK", "FUPUU");
