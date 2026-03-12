@@ -93,11 +93,11 @@ public record Word(char[] letters) implements Comparable<Word> {
         if (positions.length == 1) {
             return letters[positions[0]] == c;
         }
-        boolean[] matches = new boolean[5];
+        boolean[] foundPositions = new boolean[5];
         var found = false;
-        for (int i = 0; i < matches.length; i++) {
+        for (int i = 0; i < foundPositions.length; i++) {
             if (letters[i] == c) {
-                matches[i] = true;
+                foundPositions[i] = true;
                 found = true;
             }
         }
@@ -105,7 +105,7 @@ public record Word(char[] letters) implements Comparable<Word> {
             return false;
         }
         for (int position : positions) {
-            if (matches[position]) {
+            if (foundPositions[position]) {
                 return true;
             }
         }
@@ -117,13 +117,9 @@ public record Word(char[] letters) implements Comparable<Word> {
             .mapToObj(i -> new IndexedChar(i, letters[i]));
     }
 
-    public char charAt(int index) {
-        return letters[index];
-    }
-
     public Constraint constraintFor(char c, int index) {
         for (var i = 0; i < letters.length; i++) {
-            if (charAt(i) == c) {
+            if (this.letters()[i] == c) {
                 if (i == index) {
                     return new Constraint.Found(c, index);
                 }

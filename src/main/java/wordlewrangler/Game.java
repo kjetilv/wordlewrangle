@@ -2,7 +2,6 @@ package wordlewrangler;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -17,7 +16,6 @@ public record Game(
     List<Constraint> constraints,
     List<Word> guesses
 ) {
-    public static final Predicate<Constraint> FOUND = Constraint.Found.class::isInstance;
 
     public Game(
         Word solution,
@@ -91,7 +89,7 @@ public record Game(
                         position,
                         candidates.stream()
                             .map(word ->
-                                word.charAt(position))
+                                word.letters()[position])
                             .collect(
                                 Collectors.groupingBy(
                                     Function.identity(),
@@ -233,11 +231,15 @@ public record Game(
     private Stream<WordElim> averageHotCandidates(Collection<Word> words) {
         return words.stream().parallel()
             .map(candidate ->
-                hotCandidates(candidate, words))
-            .map(Game::mapByWord)
+                hotCandidates(candidate, words).collect(
+                    Collectors.toMap(
+                        WordElim::word,
+                        Function.identity()
+                    ))
+            )
             .reduce(Game::merge)
-            .map(Game::average)
-            .map(Map::values)
+            .map(result ->
+                average(result).values())
             .orElseGet(Collections::emptyList)
             .stream()
             .sorted(DESCENDING_ELIMINATION);
@@ -313,34 +315,48 @@ public record Game(
 
     @SafeVarargs
     private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
-        var constraints = Arrays.stream(collections)
-            .flatMap(Collection::stream)
-            .distinct()
-            .toList();
-        var foundPositions = constraints.stream()
-            .map(Constraint::foundPositions)
-            .flatMap(IntStream::boxed)
-            .collect(Collectors.toSet());
-        var foundChars = constraints.stream()
-            .filter(FOUND)
-            .map(Constraint::c)
-            .collect(Collectors.toSet());
-
+        Set<Constraint> constraints = new HashSet<>();
+        for (Collection<Constraint> collection : collections) {
+            constraints.addAll(collection);
+        }
+        Set<Integer> foundPositions = new HashSet<>();
+        for (Constraint constraint : constraints) {
+            for (Integer position : constraint.foundPositions()) {
+                foundPositions.add(position);
+            }
+        }
         var remaining = constraints.stream()
             .map(constraint ->
                 constraint.clearFound(foundPositions))
-            .flatMap(Optional::stream)
+            .filter(Objects::nonNull)
             .toList();
 
-        var presents = combine(remaining, Constraint.Present.class);
-        var founds = combine(remaining, Constraint.Found.class);
-        var negations = combine(remaining, Constraint.Unused.class);
-        return Stream.of(
-                presents,
-                founds,
-                negations
-            )
-            .flatMap(List::stream)
+        Map<Character, Constraint> presentMap = new HashMap<>();
+        Map<Character, Constraint> unusedMap = new HashMap<>();
+        Map<Character, Constraint> foundMap = new HashMap<>();
+
+        for (Constraint constraint : remaining) {
+            switch (constraint) {
+                case Constraint.Present present -> presentMap.compute(
+                    present.c(),
+                    (_, p) ->
+                        p == null ? present : p.merge(present)
+                );
+                case Constraint.Unused unused -> unusedMap.compute(
+                    unused.c(),
+                    (_, u) ->
+                        u == null ? unused : unused.merge(u)
+                );
+                case Constraint.Found found -> foundMap.compute(
+                    found.c(),
+                    (_, f) ->
+                        f == null ? found : f.merge(found)
+                );
+            }
+        }
+
+        return Stream.of(presentMap.values(), foundMap.values(), unusedMap.values())
+            .flatMap(Collection::stream)
             .toList();
     }
 
@@ -351,32 +367,17 @@ public record Game(
         return constraints.stream()
             .filter(type::isInstance)
             .collect(Collectors.groupingBy(Constraint::c))
-            .entrySet()
-            .stream()
-            .collect(Collectors.toMap(
-                Function.identity(),
-                entry ->
-                    combined(entry, entry.getValue())
-            ))
             .values()
             .stream()
-            .sorted()
+            .map(Game::combined)
             .toList();
     }
 
-    private static Constraint combined(Map.Entry<Character, List<Constraint>> entry, List<Constraint> values) {
+    private static Constraint combined(List<Constraint> values) {
         return values.stream()
             .reduce(Constraint::merge)
             .orElseThrow(() ->
-                new IllegalStateException("Cannot merge constraints for " + entry.getKey()));
-    }
-
-    private static Map<Word, WordElim> mapByWord(Stream<WordElim> list) {
-        return list.collect(
-            Collectors.toMap(
-                WordElim::word,
-                Function.identity()
-            ));
+                new IllegalStateException("Cannot merge constraints"));
     }
 
     private static Map<Word, WordElim> merge(Map<Word, WordElim> m, Map<Word, WordElim> other) {
@@ -403,7 +404,7 @@ public record Game(
     private static List<Constraint> constraintsAgainst(Word solution, Word guess) {
         List<Constraint> constraints = new ArrayList<>(guess.length());
         for (int i = 0; i < guess.length(); i++) {
-            constraints.add(solution.constraintFor(guess.charAt(i), i));
+            constraints.add(solution.constraintFor(guess.letters()[i], i));
         }
         return constraints;
     }

@@ -5,7 +5,6 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @SuppressWarnings("NullableProblems")
 public record LetterDistributions(List<LetterDistribution> distributions) {
@@ -17,7 +16,7 @@ public record LetterDistributions(List<LetterDistribution> distributions) {
     public double score(Word word) {
         double sum = 0d;
         for (int i = 0; i < distributions.size(); i++) {
-            sum += score(i, word.charAt(i));
+            sum += score(i, word.letters()[i]);
         }
         return sum;
     }

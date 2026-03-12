@@ -161,8 +161,11 @@ public class GameTest {
         var clasp = game.tried("CLASP", "UUUUU");
         var bored = clasp.tried("BORED", "UUUPU");
         assertCandidate(bored, "THEME");
+        assertCandidate(bored, "THINE");
+        assertCandidate(bored, "THEFT");
         var thine = bored.tried("THINE", "FFUUP");
-        assertNotCandidate(thine, "THEME")
+        assertNotCandidate(thine, "THEME");
+        assertThat(thine.wordScores().ratings())
             .singleElement().matches(rating ->
                 rating.getValue().word().equals(new Word("THEFT")));
     }
@@ -191,10 +194,11 @@ public class GameTest {
     void test2025_10_27() {
         var past = Word.fromFile("past.txt");
         var game = new Game(Word.fromFile("words.txt"))
-            .past(past);
+//            .past(past)
+            ;
 
-        game = game.tried("CLASP", "UUUUU");
-        game = game.tried("TONER", "FUUPU");
+        game = game.tried("WHIZZ", "UUUUU");
+//        game = game.tried("SPELL", "FUFFF");
 //        game = game.tried("TRITE", "FUUUP");
 //        game = game.tried("TWERK", "FUPUU");
 //        game = game.tried("SPEAL", "FUUFF");

@@ -12,7 +12,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
     static List<Constraint> parse(Word guess, String spec) {
         var list = IntStream.range(0, spec.length()).<Constraint>mapToObj(i -> {
                 var type = spec.charAt(i);
-                var c = guess.charAt(i);
+                var c = guess.letters()[i];
                 return switch (type) {
                     case 'F' -> new Found(c, i);
                     case 'P' -> new Present(c, i);
@@ -30,16 +30,16 @@ public sealed interface Constraint extends Comparable<Constraint> {
         return Character.compare(c(), o.c());
     }
 
-    default IntStream foundPositions() {
-        return IntStream.empty();
+    default int[] foundPositions() {
+        return NONE;
     }
 
     default OptionalInt foundChar() {
         return OptionalInt.empty();
     }
 
-    default Optional<Constraint> clearFound(Set<Integer> found) {
-        return Optional.of(this);
+    default Constraint clearFound(Set<Integer> found) {
+        return this;
     }
 
     Constraint merge(Constraint constraint);
@@ -49,6 +49,8 @@ public sealed interface Constraint extends Comparable<Constraint> {
     int[] positions();
 
     boolean excludes(Word word);
+
+    int[] NONE = new int[0];
 
     private static String toStrings(int[] ints) {
         return ints == null || ints.length == 0 ? "[]" : IntStream.of(ints)
@@ -63,12 +65,11 @@ public sealed interface Constraint extends Comparable<Constraint> {
         return ps;
     }
 
-    private static Optional<int[]> remove(int[] positions, Set<Integer> found) {
-        return Optional.of(IntStream.of(positions)
-                .filter(pos -> !found.contains(pos))
-                .toArray()
-            )
-            .filter(array -> array.length > 0);
+    private static int[] remove(int[] positions, Set<Integer> found) {
+        var removed = IntStream.of(positions)
+            .filter(pos -> !found.contains(pos))
+            .toArray();
+        return removed.length == 0 ? null : removed;
     }
 
     record Found(char c, int[] positions) implements Constraint {
@@ -88,7 +89,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
         @Override
         public boolean excludes(Word word) {
             for (int position : positions) {
-                if (word.charAt(position) != c) {
+                if (word.letters()[position] != c) {
                     return true;
                 }
             }
@@ -96,8 +97,8 @@ public sealed interface Constraint extends Comparable<Constraint> {
         }
 
         @Override
-        public IntStream foundPositions() {
-            return IntStream.of(positions);
+        public int[] foundPositions() {
+            return positions;
         }
 
         @Override
@@ -137,15 +138,14 @@ public sealed interface Constraint extends Comparable<Constraint> {
         }
 
         @Override
-        public Optional<Constraint> clearFound(Set<Integer> found) {
-            return remove(positions, found)
-                .map(remaining ->
-                    new Present(c, remaining));
+        public Constraint clearFound(Set<Integer> found) {
+            var removed = remove(positions, found);
+            return removed == null ? null : new Present(c, removed);
         }
 
         @Override
         public boolean excludes(Word word) {
-            return !word.contains(c) || word.containsAt(c, positions);
+            return word.containsAt(c, positions);
         }
 
         @Override
@@ -190,16 +190,15 @@ public sealed interface Constraint extends Comparable<Constraint> {
         }
 
         @Override
-        public Optional<Constraint> clearFound(Set<Integer> found) {
-            return remove(positions, found)
-                .map(remaining ->
-                    new Unused(c, remaining));
+        public Constraint clearFound(Set<Integer> found) {
+            var removed = remove(positions, found);
+            return removed == null ? null : new Unused(c, removed);
         }
 
         @Override
         public boolean excludes(Word word) {
             for (int position : positions) {
-                if (word.charAt(position) == c) {
+                if (word.letters()[position] == c) {
                     return true;
                 }
             }

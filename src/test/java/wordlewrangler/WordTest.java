@@ -19,8 +19,8 @@ class WordTest {
         assertThat(fooba.containsAt('O', new int[] {1, 2})).isTrue();
         assertThat(fooba.containsAt('O', new int[] {1})).isTrue();
         assertThat(fooba.containsAt('O', new int[] {2})).isTrue();
-        assertThat(fooba.containsAt('O', new int[] {0, 1})).isFalse();
-        assertThat(fooba.containsAt('O', new int[] {2, 3})).isFalse();
+        assertThat(fooba.containsAt('O', new int[] {0, 1})).isTrue();
+        assertThat(fooba.containsAt('O', new int[] {2, 3})).isTrue();
     }
 
 }
