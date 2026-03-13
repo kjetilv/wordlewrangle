@@ -145,7 +145,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
         @Override
         public boolean excludes(Word word) {
-            return word.containsAt(c, positions);
+            return !word.contains(c) || word.containsAt(c, positions);
         }
 
         @Override

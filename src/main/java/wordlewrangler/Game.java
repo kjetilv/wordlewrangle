@@ -1,6 +1,7 @@
 package wordlewrangler;
 
 import java.util.*;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -337,27 +338,24 @@ public record Game(
 
         for (Constraint constraint : remaining) {
             switch (constraint) {
-                case Constraint.Present present -> presentMap.compute(
-                    present.c(),
-                    (_, p) ->
-                        p == null ? present : p.merge(present)
-                );
-                case Constraint.Unused unused -> unusedMap.compute(
-                    unused.c(),
-                    (_, u) ->
-                        u == null ? unused : unused.merge(u)
-                );
-                case Constraint.Found found -> foundMap.compute(
-                    found.c(),
-                    (_, f) ->
-                        f == null ? found : f.merge(found)
-                );
+                case Constraint.Present present -> add(present, presentMap);
+                case Constraint.Unused unused -> add(unused, unusedMap);
+                case Constraint.Found found -> add(found, foundMap);
             }
         }
+        List<Constraint> all = new ArrayList<>(presentMap.size() + foundMap.size() + unusedMap.size());
+        all.addAll(presentMap.values());
+        all.addAll(foundMap.values());
+        all.addAll(unusedMap.values());
+        return all;
+    }
 
-        return Stream.of(presentMap.values(), foundMap.values(), unusedMap.values())
-            .flatMap(Collection::stream)
-            .toList();
+    private static Constraint add(Constraint con, Map<Character, Constraint> map) {
+        return map.compute(
+            con.c(),
+            (_, p) ->
+                p == null ? con : p.merge(con)
+        );
     }
 
     private static List<Constraint> combine(

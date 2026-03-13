@@ -197,8 +197,10 @@ public class GameTest {
 //            .past(past)
             ;
 
-        game = game.tried("WHIZZ", "UUUUU");
-//        game = game.tried("GOOEY", "UUUUU");
+        game = game.tried("CLASP", "UUPUU");
+//        game = game.tried("MATEY", "UFFFU");
+//        game = game.tried("DATED", "UFFFU");
+//        game = game.tried("EATER", "FFFFU");
 //        game = game.tried("SPELL", "FUFFF");
 //        game = game.tried("TRITE", "FUUUP");
 //        game = game.tried("TWERK", "FUPUU");
