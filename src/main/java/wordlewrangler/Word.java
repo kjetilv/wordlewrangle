@@ -89,29 +89,6 @@ public record Word(char[] letters) implements Comparable<Word> {
         return false;
     }
 
-    public boolean containsAt(char c, int[] positions) {
-        if (positions.length == 1) {
-            return letters[positions[0]] == c;
-        }
-        boolean[] foundPositions = new boolean[5];
-        var found = false;
-        for (int i = 0; i < foundPositions.length; i++) {
-            if (letters[i] == c) {
-                foundPositions[i] = true;
-                found = true;
-            }
-        }
-        if (!found) {
-            return false;
-        }
-        for (int position : positions) {
-            if (foundPositions[position]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public Stream<IndexedChar> indexedChars() {
         return IntStream.range(0, letters.length)
             .mapToObj(i -> new IndexedChar(i, letters[i]));
@@ -121,12 +98,12 @@ public record Word(char[] letters) implements Comparable<Word> {
         for (var i = 0; i < letters.length; i++) {
             if (this.letters()[i] == c) {
                 if (i == index) {
-                    return new Constraint.Found(c, index);
+                    return new Constraint.Green(c, index);
                 }
-                return new Constraint.Present(c, index);
+                return new Constraint.Yellow(c, index);
             }
         }
-        return new Constraint.Unused(c, index);
+        return new Constraint.Grey(c, index);
     }
 
     static final int SIZE = 5;

@@ -1,7 +1,6 @@
 package wordlewrangler;
 
 import java.util.*;
-import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -169,10 +168,6 @@ public record Game(
         );
     }
 
-    public List<WordElim> hotEliminatorsDescending() {
-        return byElimination(averageHotCandidates(dictionary));
-    }
-
     public boolean done() {
         return candidates.isEmpty() || !guesses.isEmpty() && guesses.getLast().equals(solution);
     }
@@ -220,13 +215,23 @@ public record Game(
         );
     }
 
-    private Game apply(Word guess, List<Constraint> guessConstraints) {
+    private Game apply(Word guess, Set<Constraint> guessConstraints) {
         if (guess.length() != unitaryLength) {
             throw new IllegalArgumentException("Guess length must be " + unitaryLength + ": " + guess);
         }
-        var newConstraints = mergeConstraints(constraints, guessConstraints);
-        var trimmedCandidates = viable(candidates, newConstraints.toArray(Constraint[]::new));
-        return new Game(solution, unitaryLength, dictionary, trimmedCandidates, past, newConstraints, add(guess));
+        var newConstraints =
+            mergeConstraints(constraints, guessConstraints);
+        var trimmedCandidates =
+            viable(candidates, newConstraints.toArray(Constraint[]::new));
+        return new Game(
+            solution,
+            unitaryLength,
+            dictionary,
+            trimmedCandidates,
+            past,
+            newConstraints,
+            add(guess)
+        );
     }
 
     private Stream<WordElim> averageHotCandidates(Collection<Word> words) {
@@ -303,34 +308,34 @@ public record Game(
 
     private static boolean viable(Constraint[] constraints, Word word) {
         for (Constraint constraint : constraints) {
-            if (constraint.excludes(word)) {
+            if (constraint.eliminates(word.letters())) {
                 return false;
             }
         }
         return true;
     }
 
-    private static List<Constraint> providedConstraints(String guess, String spec) {
-        return Constraint.parse(new Word(guess), spec);
+    private static Set<Constraint> providedConstraints(String guess, String spec) {
+        return Constraints.parse(new Word(guess), spec);
     }
 
-    @SafeVarargs
-    private static List<Constraint> mergeConstraints(Collection<Constraint>... collections) {
+    private static List<Constraint> mergeConstraints(Collection<Constraint> c1, Collection<Constraint> c2) {
         Set<Constraint> constraints = new HashSet<>();
-        for (Collection<Constraint> collection : collections) {
-            constraints.addAll(collection);
-        }
+        constraints.addAll(c1);
+        constraints.addAll(c2);
         Set<Integer> foundPositions = new HashSet<>();
         for (Constraint constraint : constraints) {
             for (Integer position : constraint.foundPositions()) {
                 foundPositions.add(position);
             }
         }
-        var remaining = constraints.stream()
-            .map(constraint ->
-                constraint.clearFound(foundPositions))
-            .filter(Objects::nonNull)
-            .toList();
+        Set<Constraint> remaining = new HashSet<>();
+        for (Constraint constraint : constraints) {
+            var remains = constraint.clearFound(foundPositions);
+            if (remains != null) {
+                remaining.add(remains);
+            }
+        }
 
         Map<Character, Constraint> presentMap = new HashMap<>();
         Map<Character, Constraint> unusedMap = new HashMap<>();
@@ -338,9 +343,9 @@ public record Game(
 
         for (Constraint constraint : remaining) {
             switch (constraint) {
-                case Constraint.Present present -> add(present, presentMap);
-                case Constraint.Unused unused -> add(unused, unusedMap);
-                case Constraint.Found found -> add(found, foundMap);
+                case Constraint.Yellow yellow -> add(yellow, presentMap);
+                case Constraint.Grey grey -> add(grey, unusedMap);
+                case Constraint.Green green -> add(green, foundMap);
             }
         }
         List<Constraint> all = new ArrayList<>(presentMap.size() + foundMap.size() + unusedMap.size());
@@ -350,32 +355,12 @@ public record Game(
         return all;
     }
 
-    private static Constraint add(Constraint con, Map<Character, Constraint> map) {
-        return map.compute(
+    private static void add(Constraint con, Map<Character, Constraint> map) {
+        map.compute(
             con.c(),
             (_, p) ->
                 p == null ? con : p.merge(con)
         );
-    }
-
-    private static List<Constraint> combine(
-        List<Constraint> constraints,
-        Class<? extends Constraint> type
-    ) {
-        return constraints.stream()
-            .filter(type::isInstance)
-            .collect(Collectors.groupingBy(Constraint::c))
-            .values()
-            .stream()
-            .map(Game::combined)
-            .toList();
-    }
-
-    private static Constraint combined(List<Constraint> values) {
-        return values.stream()
-            .reduce(Constraint::merge)
-            .orElseThrow(() ->
-                new IllegalStateException("Cannot merge constraints"));
     }
 
     private static Map<Word, WordElim> merge(Map<Word, WordElim> m, Map<Word, WordElim> other) {
@@ -399,8 +384,8 @@ public record Game(
             ));
     }
 
-    private static List<Constraint> constraintsAgainst(Word solution, Word guess) {
-        List<Constraint> constraints = new ArrayList<>(guess.length());
+    private static Set<Constraint> constraintsAgainst(Word solution, Word guess) {
+        Set<Constraint> constraints = new HashSet<>(guess.length());
         for (int i = 0; i < guess.length(); i++) {
             constraints.add(solution.constraintFor(guess.letters()[i], i));
         }

@@ -197,17 +197,43 @@ public class GameTest {
 //            .past(past)
             ;
 
-        game = game.tried("CLASP", "UUPUU");
-//        game = game.tried("MATEY", "UFFFU");
-//        game = game.tried("DATED", "UFFFU");
-//        game = game.tried("EATER", "FFFFU");
-//        game = game.tried("SPELL", "FUFFF");
-//        game = game.tried("TRITE", "FUUUP");
-//        game = game.tried("TWERK", "FUPUU");
-//        game = game.tried("SPEAL", "FUUFF");
-//        game = game.tried("RETIE", "UFUPU");
-//        game = game.tried("DEIGN", "UFFFU");
-//        game = game.tried("CREAK", "FPUFU");
+        game = game.tried("CLASP", "UPPUU");
+        game = game.tried("FATAL", "UPUUP");
+//        game = game.tried("RELAY", "UPPPU");
+//        game = game.tried("ANGLE", "FFUFF");
+        println(game);
+
+        var distribution = game.distribution();
+        println(distribution.distributions().size() + " distributions:");
+        distribution.distributions()
+            .forEach(System.out::println);
+        println();
+        var hotCandidatesDescending = game.hotCandidatesDescending();
+        println(hotCandidatesDescending.size() + " hot candidates:");
+        println(hotCandidatesDescending);
+        println();
+
+        var scores = game.wordScores();
+        println(scores.scores().size() + " scores:");
+        scores.ratings()
+            .forEach(System.out::println);
+        println();
+
+//        hotCandidatesDescending.stream()
+//            .map(elim ->
+//                Map.entry(elim, distribution.scoreStr(elim.word())))
+//            .forEach(System.out::println);
+//        var bunch = slate.tried("BUNCH", "");
+//        IO.println(bunch.hotCandidatesDescending());
+//        var depot = game.tried("DEPOT", "FFUFP");
+//        IO.println(depot.hottestCandidates());
+    }
+
+    @Test
+    void testPerf() {
+        var game = new Game(Word.fromFile("words.txt"));
+
+        game = game.tried("CLASP", "UUUUU");
         println(game);
 
         var distribution = game.distribution();

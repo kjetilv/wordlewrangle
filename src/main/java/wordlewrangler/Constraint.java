@@ -1,29 +1,13 @@
 package wordlewrangler;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @SuppressWarnings("NullableProblems")
 public sealed interface Constraint extends Comparable<Constraint> {
-
-    int[] ALL_POSITIONS = {0, 1, 2, 3, 4};
-
-    static List<Constraint> parse(Word guess, String spec) {
-        var list = IntStream.range(0, spec.length()).<Constraint>mapToObj(i -> {
-                var type = spec.charAt(i);
-                var c = guess.letters()[i];
-                return switch (type) {
-                    case 'F' -> new Found(c, i);
-                    case 'P' -> new Present(c, i);
-                    case 'U' -> new Unused(c);
-                    default -> throw new IllegalArgumentException("Invalid constraint spec: " + spec);
-                };
-            })
-            .toList();
-        return list.stream().distinct()
-            .toList();
-    }
 
     @Override
     default int compareTo(Constraint o) {
@@ -31,11 +15,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
     }
 
     default int[] foundPositions() {
-        return NONE;
-    }
-
-    default OptionalInt foundChar() {
-        return OptionalInt.empty();
+        return Constraints.NOWHERE;
     }
 
     default Constraint clearFound(Set<Integer> found) {
@@ -48,9 +28,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
     int[] positions();
 
-    boolean excludes(Word word);
-
-    int[] NONE = new int[0];
+    boolean eliminates(char[] letters);
 
     private static String toStrings(int[] ints) {
         return ints == null || ints.length == 0 ? "[]" : IntStream.of(ints)
@@ -65,31 +43,47 @@ public sealed interface Constraint extends Comparable<Constraint> {
         return ps;
     }
 
-    private static int[] remove(int[] positions, Set<Integer> found) {
-        var removed = IntStream.of(positions)
-            .filter(pos -> !found.contains(pos))
-            .toArray();
-        return removed.length == 0 ? null : removed;
+    private static int[] remove(int[] positions, Set<Integer> removals) {
+        if (removals.isEmpty()) {
+            return positions;
+        }
+        int[] remaining = new int[positions.length];
+        int r = 0;
+        for (int p = 0; p < positions.length; p++) {
+            if (!removals.contains(positions[p])) {
+                remaining[r++] = positions[p];
+            }
+        }
+        if (r == positions.length) {
+            return remaining;
+        }
+        if (r == 0) {
+            return null;
+
+        }
+        int[] subRemaining = new int[r];
+        System.arraycopy(remaining, 0, subRemaining, 0, r);
+        return subRemaining;
     }
 
-    record Found(char c, int[] positions) implements Constraint {
+    record Green(char c, int[] positions) implements Constraint {
 
-        public Found(char c, int position) {
+        public Green(char c, int position) {
             this(c, new int[] {position});
         }
 
         @Override
         public Constraint merge(Constraint constraint) {
-            if (constraint instanceof Found(var fc, var pos) && fc == c) {
-                return new Found(c, combine(positions, pos));
+            if (constraint instanceof Green(var fc, var pos) && fc == c) {
+                return new Green(c, combine(positions, pos));
             }
             throw new IllegalStateException(this + " cannot merge with  " + constraint);
         }
 
         @Override
-        public boolean excludes(Word word) {
+        public boolean eliminates(char[] letters) {
             for (int position : positions) {
-                if (word.letters()[position] != c) {
+                if (letters[position] != c) {
                     return true;
                 }
             }
@@ -102,13 +96,8 @@ public sealed interface Constraint extends Comparable<Constraint> {
         }
 
         @Override
-        public OptionalInt foundChar() {
-            return OptionalInt.of(c);
-        }
-
-        @Override
         public boolean equals(Object o) {
-            return o instanceof Found(var fc, var ps) && c == fc &&
+            return o instanceof Green(var fc, var ps) && c == fc &&
                    Arrays.equals(positions, ps);
         }
 
@@ -123,16 +112,23 @@ public sealed interface Constraint extends Comparable<Constraint> {
         }
     }
 
-    record Present(char c, int[] positions) implements Constraint {
+    record Yellow(char c, int[] positions) implements Constraint {
 
-        public Present(char c, int excluded) {
+        public Yellow(char c, int excluded) {
             this(c, new int[] {excluded});
+        }
+
+        public Yellow(char c, int excluded1, int excluded2) {
+            this(c, new int[] {excluded1, excluded2});
         }
 
         @Override
         public Constraint merge(Constraint constraint) {
-            if (constraint instanceof Present(var pc, var pos) && pc == c) {
-                return new Present(c, Constraint.combine(positions, pos));
+            if (constraint instanceof Yellow(var pc, var pos) && pc == c) {
+                return new Yellow(c, Constraint.combine(positions, pos));
+            }
+            if (constraint instanceof Grey(var pc, var pos) && pc == c) {
+                return new Yellow(c, Constraint.combine(positions, pos));
             }
             throw new IllegalStateException(this + " cannot merge with  " + constraint);
         }
@@ -140,17 +136,36 @@ public sealed interface Constraint extends Comparable<Constraint> {
         @Override
         public Constraint clearFound(Set<Integer> found) {
             var removed = remove(positions, found);
-            return removed == null ? null : new Present(c, removed);
+            return removed == null ? null : new Yellow(c, removed);
         }
 
         @Override
-        public boolean excludes(Word word) {
-            return !word.contains(c) || word.containsAt(c, positions);
+        public boolean eliminates(char[] letters) {
+            if (positions.length == 1) {
+                return letters[positions[0]] == c;
+            }
+            boolean[] foundPositions = new boolean[5];
+            var found = false;
+            for (int i = 0; i < foundPositions.length; i++) {
+                if (letters[i] == c) {
+                    foundPositions[i] = true;
+                    found = true;
+                }
+            }
+            if (!found) {
+                return true;
+            }
+            for (int position : positions) {
+                if (foundPositions[position]) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
         public boolean equals(Object o) {
-            return o instanceof Present(var pc, var ps) && c == pc && Arrays.equals(positions, ps);
+            return o instanceof Yellow(var pc, var ps) && c == pc && Arrays.equals(positions, ps);
         }
 
         @Override
@@ -165,26 +180,26 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
     }
 
-    record Unused(char c, int[] positions) implements Constraint {
+    record Grey(char c, int[] positions) implements Constraint {
 
-        public Unused(char c) {
-            this(c, ALL_POSITIONS);
+        public Grey(char c) {
+            this(c, Constraints.ALL_POSITIONS);
         }
 
-        public Unused(char c, int index) {
+        public Grey(char c, int index) {
             this(c, new int[] {index});
         }
 
         @Override
         public Constraint merge(Constraint constraint) {
-            if (constraint instanceof Unused(var uc, var pos) && uc == c) {
+            if (constraint instanceof Grey(var uc, var pos) && uc == c) {
                 if (positions.length == 5) {
                     return this;
                 }
                 if (pos.length == 5) {
-                    return new Unused(c);
+                    return new Grey(c);
                 }
-                return new Unused(c, Constraint.combine(this.positions, pos));
+                return new Grey(c, Constraint.combine(this.positions, pos));
             }
             throw new IllegalStateException(this + " cannot merge with  " + constraint);
         }
@@ -192,12 +207,11 @@ public sealed interface Constraint extends Comparable<Constraint> {
         @Override
         public Constraint clearFound(Set<Integer> found) {
             var removed = remove(positions, found);
-            return removed == null ? null : new Unused(c, removed);
+            return removed == null ? null : new Grey(c, removed);
         }
 
         @Override
-        public boolean excludes(Word word) {
-            var letters = word.letters();
+        public boolean eliminates(char[] letters) {
             for (int position : positions) {
                 if (letters[position] == c) {
                     return true;
@@ -208,7 +222,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
 
         @Override
         public boolean equals(Object o) {
-            return o instanceof Unused(var uc, var ps) && c == uc && Arrays.equals(positions, ps);
+            return o instanceof Grey(var uc, var ps) && c == uc && Arrays.equals(positions, ps);
         }
 
         @Override
@@ -219,7 +233,7 @@ public sealed interface Constraint extends Comparable<Constraint> {
         @Override
         public String toString() {
             var length = positions.length;
-            return "[❌" + c + (length == 0 || length == 5
+            return "[️🔘️" + c + (length == 0 || length == 5
                 ? ""
                 : " " + toStrings(positions)) + "]";
         }
